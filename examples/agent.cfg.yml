@@ -1,0 +1,45 @@
+http:
+  listen: 0.0.0.0:8080
+  metrics_enable: false
+interval: 5m0s
+manager:
+  address: 127.0.0.1:8080
+  token: tokenJwt
+requesters:
+- id: static
+  type: static
+  config:
+    domains:
+    - - example.com
+    - - foo.com
+      - bar.com
+- id: traefikV2
+  type: traefikV2
+  config:
+    addresses:
+    - http://127.0.0.1
+- id: traefikV3
+  type: traefikV3
+  config:
+    addresses:
+    - http://127.0.0.1
+state:
+  config:
+    path: /var/lib/lets-go-tls/state.json
+  type: fs
+storages:
+- id: fs
+  type: fs
+  config:
+    path: /var/lib/lets-go-tls/ssl
+    prefix_filename: ""
+- id: traefikV2
+  type: traefikV2
+  config:
+    path: /etc/traefik/config
+    prefix_filename: ""
+- id: traefikV3
+  type: traefikV3
+  config:
+    path: /etc/traefik/config
+    prefix_filename: ""

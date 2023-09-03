@@ -1,0 +1,71 @@
+acme:
+  ca_server: https://acme-v02.api.letsencrypt.org/directory
+  delay_failed: 24h0m0s
+  email: acme@example.com
+  max_attempt: 3
+  renew_period: 1440h0m0s
+  resolvers:
+    gandiv5:
+      type: gandiv5
+      config:
+        api_key: ""
+        http_timeout: 3m0s
+        polling_interval: 2s
+        propagation_timeout: 1m0s
+      filters:
+      - foo.com
+    httpreq:
+      type: httpreq
+      config:
+        endpoint: ""
+        http_timeout: 3m0s
+        mode: ""
+        password: ""
+        polling_interval: 2s
+        propagation_timeout: 1m0s
+        username: ""
+      filters:
+      - foo.com
+    ovh:
+      type: ovh
+      config:
+        access_token: ""
+        application_key: ""
+        application_secret: ""
+        client_id: ""
+        client_secret: ""
+        consumer_key: ""
+        endpoint: ovh-eu
+        http_timeout: 3m0s
+        polling_interval: 2s
+        propagation_timeout: 1m0s
+      filters:
+      - foo.com
+cache:
+  type: memory
+http:
+  listen: 0.0.0.0:8080
+  metrics_enable: false
+interval: 5m0s
+jwt:
+  key: superSecret
+  method: HS256
+lock_duration: 25m0s
+requesters:
+- id: static
+  type: static
+  config:
+    domains:
+    - - example.com
+    - - foo.com
+      - bar.com
+- id: agents
+  type: agent
+  config:
+    addresses:
+    - 127.0.0.1:8080
+state:
+  config:
+    path: /var/lib/lets-go-tls/state.json
+  type: fs
+unused_retention: 336h0m0s

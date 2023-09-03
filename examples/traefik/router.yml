@@ -1,0 +1,12 @@
+---
+http:
+  routers:
+    router-acme:
+      rule: "PathPrefix(`/.well-known/acme-challenge/`)"
+      service: service-acme
+      priority: 10000000
+  services:
+    service-acme:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8080/" # URL to lets-go-tls server
