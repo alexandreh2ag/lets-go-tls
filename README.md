@@ -333,11 +333,11 @@ chmod +x ${DESTINATION}/lets-go-tls_agent
 
 1. Start the Server:
 ```bash
-./lets-go-tls_server -c ./server.yml
+./lets-go-tls_server start -c ./server.yml
    ```
 2. Configure and start the Agent:
 ```bash
-./lets-go-tls_agent -c ./agent.yml
+./lets-go-tls_agent start -c ./agent.yml
 ```
 
 ### Server
