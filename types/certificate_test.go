@@ -293,3 +293,13 @@ func TestCertificates_Deletes(t *testing.T) {
 	got := certificates.Deletes(removeCertificates)
 	assert.Equal(t, want, got)
 }
+
+func TestGetCertificateFilename(t *testing.T) {
+	identifier := "foo"
+	assert.Equal(t, "foo.crt", GetCertificateFilename(identifier))
+}
+
+func TestGetKeyFilename(t *testing.T) {
+	identifier := "foo"
+	assert.Equal(t, "foo.key", GetKeyFilename(identifier))
+}

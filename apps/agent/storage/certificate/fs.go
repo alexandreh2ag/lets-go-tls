@@ -24,8 +24,14 @@ func init() {
 var _ certificate.Storage = &fs{}
 
 type ConfigFs struct {
-	Path           string `mapstructure:"path" validate:"required"`
-	PrefixFilename string `mapstructure:"prefix_filename"`
+	Path                string                     `mapstructure:"path" validate:"required"`
+	PrefixFilename      string                     `mapstructure:"prefix_filename"`
+	SpecificIdentifiers []ConfigSpecificIdentifier `mapstructure:"specific_identifiers" validate:"unique=Identifier,dive"`
+}
+
+type ConfigSpecificIdentifier struct {
+	Identifier string        `mapstructure:"identifier" validate:"required"`
+	Domains    types.Domains `mapstructure:"domains" validate:"required,min=1"`
 }
 
 type fs struct {
@@ -40,11 +46,15 @@ func (f fs) ID() string {
 }
 
 func (f fs) GetKeyPath(cert *types.Certificate) string {
-	return filepath.Join(f.cfg.Path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, cert.GetKeyFilename()))
+	return f.GetFilePath(cert.GetKeyFilename())
 }
 
 func (f fs) GetCertificatePath(cert *types.Certificate) string {
-	return filepath.Join(f.cfg.Path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, cert.GetCertificateFilename()))
+	return f.GetFilePath(cert.GetCertificateFilename())
+}
+
+func (f fs) GetFilePath(filename string) string {
+	return filepath.Join(f.cfg.Path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, filename))
 }
 
 func (f fs) Save(certificates types.Certificates) []error {
@@ -58,6 +68,12 @@ func (f fs) Save(certificates types.Certificates) []error {
 	for _, cert := range certificates {
 		keyPath := f.GetKeyPath(cert)
 		certPath := f.GetCertificatePath(cert)
+
+		if identifier := f.GetSpecificIdentifier(cert); identifier != "" {
+			keyPath = f.GetFilePath(types.GetKeyFilename(identifier))
+			certPath = f.GetFilePath(types.GetCertificateFilename(identifier))
+		}
+
 		if !f.checksum.MustCompareContentWithPath(cert.Key, keyPath) {
 			err = afero.WriteFile(f.fs, keyPath, cert.Key, 0660)
 			if err != nil {
@@ -99,6 +115,16 @@ func (f fs) Delete(certificates types.Certificates) []error {
 		}
 	}
 	return errors
+}
+
+func (f fs) GetSpecificIdentifier(cert *types.Certificate) string {
+	for _, specificIdentifier := range f.cfg.SpecificIdentifiers {
+		if cert.Match(specificIdentifier.Domains) {
+			return specificIdentifier.Identifier
+		}
+	}
+
+	return ""
 }
 
 func createFsStorage(ctx *context.AgentContext, cfg config.StorageConfig) (certificate.Storage, error) {

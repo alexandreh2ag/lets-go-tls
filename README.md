@@ -263,6 +263,10 @@ storages:
       config:
           path: /var/lib/lets-go-tls/ssl # mandatory
           prefix_filename: "ssl."
+          specific_identifiers:
+            - identifier: custom # mandatory
+              domains: # mandatory
+                - bar.com
 ```
 
 tree structure example:
@@ -274,6 +278,8 @@ tree structure example:
     ├── ssl.example.com-0.crt
     ├── ssl.foo.com-0.key
     └── ssl.foo.com-0.crt
+    ├── ssl.custom.key
+    └── ssl.custom.crt
 ```
 
 ###### Traefik (V2 & V3)
@@ -333,11 +339,11 @@ chmod +x ${DESTINATION}/lets-go-tls_agent
 
 1. Start the Server:
 ```bash
-./lets-go-tls_server -c ./server.yml
+./lets-go-tls_server start -c ./server.yml
    ```
 2. Configure and start the Agent:
 ```bash
-./lets-go-tls_agent -c ./agent.yml
+./lets-go-tls_agent start -c ./agent.yml
 ```
 
 ### Server

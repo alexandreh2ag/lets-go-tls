@@ -23,6 +23,15 @@ func Test_fs_ID(t *testing.T) {
 func Test_createFsStorage(t *testing.T) {
 	ctx := context.TestContext(nil)
 	storage := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	storageSpecificIdentifiers := &fs{
+		id: "foo",
+		fs: ctx.Fs,
+		cfg: ConfigFs{Path: "/app", SpecificIdentifiers: []ConfigSpecificIdentifier{
+			{Identifier: "test", Domains: types.Domains{"example.com"}},
+			{Identifier: "test2", Domains: types.Domains{"example2.com"}},
+		}},
+		checksum: appFs.NewChecksum(ctx.Fs),
+	}
 	tests := []struct {
 		name        string
 		cfg         config.StorageConfig
@@ -58,6 +67,43 @@ func Test_createFsStorage(t *testing.T) {
 			wantErr:     true,
 			errContains: "Key: 'ConfigFs.Path' Error:Field validation for 'Path' failed on the 'required' tag",
 		},
+		{
+			name: "SuccessValidateCfgSpecificIdentifiers",
+			cfg: config.StorageConfig{
+				Id: "foo",
+				Config: map[string]interface{}{
+					"path": "/app",
+					"specific_identifiers": []interface{}{
+						map[string]interface{}{
+							"identifier": "test",
+							"domains":    []string{"example.com"},
+						},
+						map[string]interface{}{
+							"identifier": "test2",
+							"domains":    []string{"example2.com"},
+						},
+					}},
+			},
+			want:    storageSpecificIdentifiers,
+			wantErr: false,
+		},
+		{
+			name: "FailValidateCfgSpecificIdentifiers",
+			cfg: config.StorageConfig{
+				Id: "foo",
+				Config: map[string]interface{}{
+					"path": "/app",
+					"specific_identifiers": []interface{}{
+						map[string]interface{}{
+							"identifier": "",
+							"domains":    []string{},
+						},
+					}},
+			},
+			want:        storage,
+			wantErr:     true,
+			errContains: "Key: 'ConfigFs.SpecificIdentifiers[0].Identifier' Error:Field validation for 'Identifier' failed on the 'required' tag",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -89,6 +135,45 @@ func Test_fs_Save_Success(t *testing.T) {
 	assert.Equal(t, "key", string(contentKey))
 
 	contentCrt, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".crt"))
+	assert.NoError(t, err)
+	assert.Equal(t, "certificate", string(contentCrt))
+}
+
+func Test_fs_Save_SuccessWithSpecificIdentifiers(t *testing.T) {
+	ctx := context.TestContext(nil)
+	identifier1 := "example.com-0"
+	identifier2 := "foo.com-0"
+	identifierCustom := "foo-custom"
+	certificates := types.Certificates{
+		{Identifier: identifier1, Domains: types.Domains{"example.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
+		{Identifier: identifier2, Domains: types.Domains{"foo.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	storage := &fs{
+		fs: ctx.Fs,
+		cfg: ConfigFs{
+			Path: "/app",
+			SpecificIdentifiers: []ConfigSpecificIdentifier{
+				{Identifier: identifierCustom, Domains: types.Domains{"foo.com"}},
+			},
+		},
+		checksum: appFs.NewChecksum(ctx.Fs),
+	}
+	errs := storage.Save(certificates)
+
+	assert.Len(t, errs, 0)
+	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier1+".key"))
+	assert.NoError(t, err)
+	assert.Equal(t, "key", string(contentKey))
+
+	contentCrt, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier1+".crt"))
+	assert.NoError(t, err)
+	assert.Equal(t, "certificate", string(contentCrt))
+
+	contentKey, err = afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifierCustom+".key"))
+	assert.NoError(t, err)
+	assert.Equal(t, "key", string(contentKey))
+
+	contentCrt, err = afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifierCustom+".crt"))
 	assert.NoError(t, err)
 	assert.Equal(t, "certificate", string(contentCrt))
 }
@@ -167,6 +252,20 @@ func Test_fs_GetCertificatePathWithPrefix(t *testing.T) {
 	assert.Equal(t, want, f.GetCertificatePath(cert))
 }
 
+func Test_fs_GetFilePath(t *testing.T) {
+	want := "/app/example.com-0.crt"
+	filename := "example.com-0.crt"
+	f := &fs{cfg: ConfigFs{Path: "/app"}}
+	assert.Equal(t, want, f.GetFilePath(filename))
+}
+
+func Test_fs_GetFilePathWithPrefix(t *testing.T) {
+	want := "/app/ssl.example.com-0.crt"
+	filename := "example.com-0.crt"
+	f := &fs{cfg: ConfigFs{Path: "/app", PrefixFilename: "ssl."}}
+	assert.Equal(t, want, f.GetFilePath(filename))
+}
+
 func Test_fs_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
@@ -194,4 +293,33 @@ func Test_fs_Delete(t *testing.T) {
 	want := []error{errors.New("error"), errors.New("error")}
 	f := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}}
 	assert.Equalf(t, want, f.Delete(certificates), "Delete(%v)", certificates)
+}
+
+func Test_fs_GetSpecificIdentifier(t *testing.T) {
+
+	tests := []struct {
+		name string
+		cfg  ConfigFs
+		cert *types.Certificate
+		want string
+	}{
+		{
+			name: "GetSpecificIdentifier",
+			cert: &types.Certificate{Identifier: "example.com-0", Domains: types.Domains{"example.com"}},
+			cfg:  ConfigFs{SpecificIdentifiers: []ConfigSpecificIdentifier{{Identifier: "foo", Domains: types.Domains{"example.com"}}}},
+			want: "foo",
+		},
+		{
+			name: "empty",
+			cert: &types.Certificate{Identifier: "example.com-0", Domains: types.Domains{"example.com"}},
+			cfg:  ConfigFs{SpecificIdentifiers: []ConfigSpecificIdentifier{{Identifier: "foo", Domains: types.Domains{"foo.com"}}}},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := fs{cfg: tt.cfg}
+			assert.Equalf(t, tt.want, f.GetSpecificIdentifier(tt.cert), "GetSpecificIdentifier(%v)", tt.cert)
+		})
+	}
 }
