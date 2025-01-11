@@ -3,7 +3,7 @@ acme:
   delay_failed: 24h0m0s
   email: acme@example.com
   max_attempt: 3
-  renew_period: 1440h0m0s
+  renew_period: 240h0m0s
   resolvers:
     gandiv5:
       type: gandiv5

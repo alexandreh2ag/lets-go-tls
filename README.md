@@ -263,6 +263,10 @@ storages:
       config:
           path: /var/lib/lets-go-tls/ssl # mandatory
           prefix_filename: "ssl."
+          specific_identifiers:
+            - identifier: custom # mandatory
+              domains: # mandatory
+                - bar.com
 ```
 
 tree structure example:
@@ -274,6 +278,8 @@ tree structure example:
     ├── ssl.example.com-0.crt
     ├── ssl.foo.com-0.key
     └── ssl.foo.com-0.crt
+    ├── ssl.custom.key
+    └── ssl.custom.crt
 ```
 
 ###### Traefik (V2 & V3)

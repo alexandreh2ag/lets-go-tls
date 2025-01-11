@@ -89,11 +89,11 @@ func (c Certificate) IsValid() bool {
 }
 
 func (c Certificate) GetKeyFilename() string {
-	return fmt.Sprintf("%s.%s", c.Identifier, "key")
+	return GetKeyFilename(c.Identifier)
 }
 
 func (c Certificate) GetCertificateFilename() string {
-	return fmt.Sprintf("%s.%s", c.Identifier, "crt")
+	return GetCertificateFilename(c.Identifier)
 }
 
 func (c Certificate) Match(domains Domains) bool {
@@ -106,4 +106,12 @@ func (c Certificate) Match(domains Domains) bool {
 		return true
 	}
 	return false
+}
+
+func GetKeyFilename(identifier string) string {
+	return fmt.Sprintf("%s.%s", identifier, "key")
+}
+
+func GetCertificateFilename(identifier string) string {
+	return fmt.Sprintf("%s.%s", identifier, "crt")
 }

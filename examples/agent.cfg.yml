@@ -33,6 +33,10 @@ storages:
   config:
     path: /var/lib/lets-go-tls/ssl
     prefix_filename: ""
+    specific_identifiers:
+    - identifier: custom
+      domains:
+      - example.com
 - id: traefikV2
   type: traefikV2
   config:

@@ -13,6 +13,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/requester"
 	"github.com/alexandreh2ag/lets-go-tls/storage/state"
+	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 	"os"
@@ -166,6 +167,9 @@ func getAgentConfig() agentConfig.Config {
 			Config: decodeToMap(certificate.ConfigFs{
 				Path:           "/var/lib/lets-go-tls/ssl",
 				PrefixFilename: "",
+				SpecificIdentifiers: []certificate.ConfigSpecificIdentifier{
+					{Identifier: "custom", Domains: types.Domains{"example.com"}},
+				},
 			}),
 		},
 		{
