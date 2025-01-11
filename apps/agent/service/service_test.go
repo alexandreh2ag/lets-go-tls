@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	appCtx "github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	appHttp "github.com/alexandreh2ag/lets-go-tls/http"
 	mockHttp "github.com/alexandreh2ag/lets-go-tls/mocks/http"
 	mockPrometheus "github.com/alexandreh2ag/lets-go-tls/mocks/prometheus"
@@ -42,8 +43,18 @@ func TestNewService(t *testing.T) {
 	defer ctrl.Finish()
 	stateStorage := mockTypesStorageState.NewMockStorage(ctrl)
 	ctx.StateStorage = stateStorage
-	want := &AgentService{managerConfig: ctx.Config.Manager, stateStorage: stateStorage, storages: ctx.Storages, httpClient: ctx.GetHttpClient(), logger: ctx.Logger, clock: clockwork.NewRealClock()}
+	hookManager := hook.NewManagerHook(ctx.Logger)
+	want := &AgentService{
+		managerConfig: ctx.Config.Manager,
+		stateStorage:  stateStorage,
+		storages:      ctx.Storages,
+		httpClient:    ctx.GetHttpClient(),
+		logger:        ctx.Logger,
+		clock:         clockwork.NewRealClock(),
+		hookManager:   hookManager,
+	}
 	got := NewService(ctx)
+	got.hookManager = hookManager
 	assert.Equal(t, want, got)
 }
 
@@ -77,15 +88,18 @@ func TestAgentService_Run_Success(t *testing.T) {
 	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
 
 	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
-	storage.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
-	storage.EXPECT().Delete(gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).Return(nil)
 
 	as := &AgentService{
 		logger:       ctx.Logger,
 		stateStorage: storageState,
 		httpClient:   clientHttp,
 		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
+	go as.hookManager.Start()
+
 	err := as.Run(ctx)
 	assert.NoError(t, err)
 }
@@ -104,7 +118,9 @@ func TestAgentService_Run_FailLoadState(t *testing.T) {
 	as := &AgentService{
 		logger:       ctx.Logger,
 		stateStorage: storageState,
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
+	go as.hookManager.Start()
 	err := as.Run(ctx)
 
 	assert.Error(t, err)
@@ -147,15 +163,18 @@ func TestAgentService_Run_SuccessWithErrorFetchRequest(t *testing.T) {
 	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
 
 	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
-	storage.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
-	storage.EXPECT().Delete(gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).Return(nil)
 
 	as := &AgentService{
 		logger:       ctx.Logger,
 		stateStorage: storageState,
 		httpClient:   clientHttp,
 		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
+	go as.hookManager.Start()
+
 	err := as.Run(ctx)
 	assert.NoError(t, err)
 	assert.Contains(t, b.String(), "requester (bar) fetching domains request failed: error fetch")
@@ -185,7 +204,10 @@ func TestAgentService_Run_SuccessWithErrorGetRequestManager(t *testing.T) {
 		logger:       ctx.Logger,
 		stateStorage: storageState,
 		httpClient:   clientHttp,
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
+	go as.hookManager.Start()
+
 	err := as.Run(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error get request manager")
@@ -209,6 +231,7 @@ func TestAgentService_Start_Success(t *testing.T) {
 	as := &AgentService{
 		stateStorage: storage,
 		clock:        fakeClock,
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
 
 	go func() {
@@ -239,6 +262,7 @@ func TestAgentService_Start_Failed(t *testing.T) {
 	as := &AgentService{
 		stateStorage: storage,
 		clock:        fakeClock,
+		hookManager:  hook.NewManagerHook(ctx.Logger),
 	}
 	go func() {
 		err := as.Start(ctx)

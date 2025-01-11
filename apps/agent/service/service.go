@@ -7,6 +7,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	appCtx "github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/requester"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	appHttp "github.com/alexandreh2ag/lets-go-tls/http"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
@@ -46,6 +47,8 @@ type AgentService struct {
 
 	clock clockwork.Clock
 
+	hookManager *hook.ManagerHook
+
 	mutexMetrics sync.Mutex
 	metricsInit  bool
 }
@@ -58,10 +61,12 @@ func NewService(ctx *appCtx.AgentContext) *AgentService {
 		httpClient:    ctx.GetHttpClient(),
 		logger:        ctx.GetLogger(),
 		clock:         clockwork.NewRealClock(),
+		hookManager:   hook.NewManagerHook(ctx.Logger),
 	}
 }
 
 func (as *AgentService) Start(ctx *appCtx.AgentContext) error {
+	go as.hookManager.Start()
 
 	tickFunc := func() {
 		err := as.Run(ctx)
@@ -145,14 +150,14 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 	stateDeleteUnusedCertificates := false
 	for _, storage := range as.storages {
 		ctx.Logger.Debug("save certificates in storage")
-		errStorageSave := storage.Save(state.Certificates)
+		errStorageSave := storage.Save(state.Certificates, as.hookManager.GetHookChan())
 		if len(errStorageSave) > 0 {
 			for _, err := range errStorageSave {
 				ctx.Logger.Error(fmt.Sprintf("storage %s, failed to save certificates: %v", storage.ID(), err))
 			}
 		}
 
-		errStorageDelete := storage.Delete(unusedCertificates)
+		errStorageDelete := storage.Delete(unusedCertificates, as.hookManager.GetHookChan())
 		if len(errStorageDelete) > 0 {
 			stateDeleteUnusedCertificates = true
 			for _, err := range errStorageDelete {
@@ -165,6 +170,8 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 		ctx.Logger.Debug("delete unused certificates in state")
 		state.Certificates = state.Certificates.Deletes(unusedCertificates)
 	}
+
+	as.hookManager.RunHooks()
 
 	ctx.Logger.Debug("save state")
 	return as.stateStorage.Save(state)

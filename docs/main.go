@@ -11,6 +11,7 @@ import (
 	serverConfig "github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	serverRequester "github.com/alexandreh2ag/lets-go-tls/apps/server/requester"
 	"github.com/alexandreh2ag/lets-go-tls/config"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	"github.com/alexandreh2ag/lets-go-tls/requester"
 	"github.com/alexandreh2ag/lets-go-tls/storage/state"
 	"github.com/alexandreh2ag/lets-go-tls/types"
@@ -169,6 +170,10 @@ func getAgentConfig() agentConfig.Config {
 				PrefixFilename: "",
 				SpecificIdentifiers: []certificate.ConfigSpecificIdentifier{
 					{Identifier: "custom", Domains: types.Domains{"example.com"}},
+				},
+				PostHook: &hook.Hook{
+					Cmd:     "echo 1",
+					Timeout: time.Second * 60,
 				},
 			}),
 		},

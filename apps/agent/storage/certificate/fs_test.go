@@ -5,6 +5,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	mockAfero "github.com/alexandreh2ag/lets-go-tls/mocks/afero"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
@@ -123,24 +124,6 @@ func Test_createFsStorage(t *testing.T) {
 
 func Test_fs_Save_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	identifier := "example.com"
-	certificates := types.Certificates{
-		{Identifier: identifier, Key: []byte("key"), Certificate: []byte("certificate")},
-	}
-	storage := &fs{fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
-	errs := storage.Save(certificates)
-	assert.Len(t, errs, 0)
-	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".key"))
-	assert.NoError(t, err)
-	assert.Equal(t, "key", string(contentKey))
-
-	contentCrt, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".crt"))
-	assert.NoError(t, err)
-	assert.Equal(t, "certificate", string(contentCrt))
-}
-
-func Test_fs_Save_SuccessWithSpecificIdentifiers(t *testing.T) {
-	ctx := context.TestContext(nil)
 	identifier1 := "example.com-0"
 	identifier2 := "foo.com-0"
 	identifierCustom := "foo-custom"
@@ -158,7 +141,7 @@ func Test_fs_Save_SuccessWithSpecificIdentifiers(t *testing.T) {
 		},
 		checksum: appFs.NewChecksum(ctx.Fs),
 	}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 
 	assert.Len(t, errs, 0)
 	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier1+".key"))
@@ -178,13 +161,43 @@ func Test_fs_Save_SuccessWithSpecificIdentifiers(t *testing.T) {
 	assert.Equal(t, "certificate", string(contentCrt))
 }
 
+func Test_fs_Save_SuccessWithHook(t *testing.T) {
+	ctx := context.TestContext(nil)
+	identifier := "example.com"
+	certificates := types.Certificates{
+		{Identifier: identifier, Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	chanHook := make(chan *hook.Hook)
+	postHook := &hook.Hook{Cmd: "echo 1"}
+	storage := &fs{fs: ctx.Fs, cfg: ConfigFs{Path: "/app", PostHook: postHook}, checksum: appFs.NewChecksum(ctx.Fs)}
+
+	go func() {
+		for {
+			select {
+			case h := <-chanHook:
+				assert.Equal(t, postHook, h)
+			}
+		}
+	}()
+
+	errs := storage.Save(certificates, chanHook)
+	assert.Len(t, errs, 0)
+	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".key"))
+	assert.NoError(t, err)
+	assert.Equal(t, "key", string(contentKey))
+
+	contentCrt, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".crt"))
+	assert.NoError(t, err)
+	assert.Equal(t, "certificate", string(contentCrt))
+}
+
 func Test_fs_Save_FailCreateDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
 	fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error"))
 	certificates := types.Certificates{}
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
 }
 
@@ -200,7 +213,7 @@ func Test_fs_Save_FailWriteKey(t *testing.T) {
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
 }
 
@@ -220,7 +233,7 @@ func Test_fs_Save_FailCertificateKey(t *testing.T) {
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
 }
 
@@ -291,8 +304,19 @@ func Test_fs_Delete(t *testing.T) {
 		{Identifier: "example.com-2", Key: []byte("key"), Certificate: []byte("certificate")},
 	}
 	want := []error{errors.New("error"), errors.New("error")}
-	f := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}}
-	assert.Equalf(t, want, f.Delete(certificates), "Delete(%v)", certificates)
+	chanHook := make(chan *hook.Hook)
+	postHook := &hook.Hook{Cmd: "echo 1"}
+
+	go func() {
+		for {
+			select {
+			case h := <-chanHook:
+				assert.Equal(t, postHook, h)
+			}
+		}
+	}()
+	f := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app", PostHook: postHook}}
+	assert.Equalf(t, want, f.Delete(certificates, chanHook), "Delete(%v)", certificates)
 }
 
 func Test_fs_GetSpecificIdentifier(t *testing.T) {

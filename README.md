@@ -267,6 +267,9 @@ storages:
             - identifier: custom # mandatory
               domains: # mandatory
                 - bar.com
+          post_hook:
+            cmd: "bash -c 'nginx -t && systemctl reload nginx'" # mandatory, run command when certificates have changed
+            timeout: 1m0s
 ```
 
 tree structure example:

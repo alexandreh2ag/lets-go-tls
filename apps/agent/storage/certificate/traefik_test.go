@@ -5,6 +5,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	mockAfero "github.com/alexandreh2ag/lets-go-tls/mocks/afero"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
@@ -82,7 +83,7 @@ func Test_traefik_Save_Success(t *testing.T) {
 		{Identifier: identifier, Key: []byte("key"), Certificate: []byte("certificate")},
 	}
 	storage := &traefik{fs: ctx.Fs, cfg: ConfigTraefik{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 0)
 	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".yml"))
 	assert.NoError(t, err)
@@ -96,7 +97,7 @@ func Test_traefik_Save_FailCreateDir(t *testing.T) {
 	fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error"))
 	certificates := types.Certificates{}
 	storage := &traefik{fs: fsMock, cfg: ConfigTraefik{Path: "/app"}}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
 }
 
@@ -112,7 +113,7 @@ func Test_traefik_Save_FailWriteCertFile(t *testing.T) {
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
 	storage := &traefik{fs: fsMock, cfg: ConfigTraefik{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates)
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
 }
 
@@ -148,5 +149,5 @@ func Test_traefik_Delete(t1 *testing.T) {
 		fs:  fsMock,
 		cfg: ConfigTraefik{Path: "/app"},
 	}
-	assert.Equalf(t1, want, t.Delete(certificates), "Delete(%v)", certificates)
+	assert.Equalf(t1, want, t.Delete(certificates, make(chan<- *hook.Hook)), "Delete(%v)", certificates)
 }

@@ -32,6 +32,9 @@ storages:
   type: fs
   config:
     path: /var/lib/lets-go-tls/ssl
+    post_hook:
+      cmd: echo 1
+      timeout: 1m0s
     prefix_filename: ""
     specific_identifiers:
     - identifier: custom
