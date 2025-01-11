@@ -7,4 +7,4 @@ COPY lets-go-tls_agent /usr/local/bin/
 
 EXPOSE 8080
 
-CMD ["/usr/local/bin/lets-go-tls_agent"]
+ENTRYPOINT ["/usr/local/bin/lets-go-tls_agent"]

@@ -6,4 +6,4 @@ COPY lets-go-tls_server /usr/local/bin/
 
 EXPOSE 8080
 
-CMD ["/usr/local/bin/lets-go-tls_server"]
+ENTRYPOINT ["/usr/local/bin/lets-go-tls_server"]

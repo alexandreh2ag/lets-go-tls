@@ -307,31 +307,38 @@ When agent process detect that a certificate is unused, it will to remove files 
 
 * Run with docker:
 
-  ```bash
-  docker run -it -v ${PWD}:/build alexandreh2ag/lets-go-tls-server:${VERSION} --help
-  docker run -it -v ${PWD}:/build alexandreh2ag/lets-go-tls-agent:${VERSION} --help
-  ```
+```bash
+docker run -it -v ${PWD}:/config alexandreh2ag/lets-go-tls-server:${VERSION} start -c /config/server.yml
+docker run -it -v ${PWD}:/config alexandreh2ag/lets-go-tls-agent:${VERSION} start -c /config/agent.yml
+```
 
 * Install binary to custom location:
 
-  ```bash
-  curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/download/${VERSION}/lets-go-tls_server_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_server
-  chmod +x ${DESTINATION}/lets-go-tls_server
-  
-  curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/download/${VERSION}/lets-go-tls_agent_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_agent
-  chmod +x ${DESTINATION}/lets-go-tls_agent
-  ```
+```bash
+export DESTINATION=/usr/local/bin
+# latest
+curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/latest/download/lets-go-tls_server_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_server
+# specific version
+curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/download/${VERSION}/lets-go-tls_server_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_server
+chmod +x ${DESTINATION}/lets-go-tls_server
+
+# latest
+curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/latest/download/lets-go-tls_agent_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_server
+# specific version
+curl -L "https://github.com/alexandreh2ag/lets-go-tls/releases/download/${VERSION}/lets-go-tls_agent_$(uname -s)_$(uname -m)" -o ${DESTINATION}/lets-go-tls_agent
+chmod +x ${DESTINATION}/lets-go-tls_agent
+```
 
 ## Usage
 
 1. Start the Server:
-   ```bash
-   ./lets-go-tls_server -c ./server.yml
+```bash
+./lets-go-tls_server -c ./server.yml
    ```
 2. Configure and start the Agent:
-   ```bash
-   ./lets-go-tls_agent -c ./agent.yml
-   ```
+```bash
+./lets-go-tls_agent -c ./agent.yml
+```
 
 ### Server
 
