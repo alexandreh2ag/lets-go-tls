@@ -1,0 +1,123 @@
+---
+version: 2
+project_name: lets-go-tls
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: server
+    main: ./apps/server
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w -X github.com/alexandreh2ag/lets-go-tls/version.Version={{.Tag}} -X github.com/alexandreh2ag/lets-go-tls/version.Commit={{.ShortCommit}}"
+    binary: lets-go-tls_server
+    env:
+      - CGO_ENABLED=0
+
+  - id: agent
+    main: ./apps/agent
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - "-s -w -X github.com/alexandreh2ag/lets-go-tls/version.Version={{.Tag}} -X github.com/alexandreh2ag/lets-go-tls/version.Commit={{.ShortCommit}}"
+    binary: lets-go-tls_agent
+    env:
+      - CGO_ENABLED=0
+
+dockers:
+  - build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--provenance=false"
+    dockerfile: Dockerfile.server
+    goarch: arm64
+    image_templates:
+      - "alexandreh2ag/lets-go-tls-server:v{{ .Version }}-arm64"
+    use: buildx
+    ids:
+      - server
+  - build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--provenance=false"
+    dockerfile: Dockerfile.server
+    goarch: amd64
+    image_templates:
+      - "alexandreh2ag/lets-go-tls-server:v{{ .Version }}-amd64"
+    use: buildx
+    ids:
+      - server
+
+  - build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--provenance=false"
+    dockerfile: Dockerfile.agent
+    goarch: arm64
+    image_templates:
+      - "alexandreh2ag/lets-go-tls-agent:v{{ .Version }}-arm64"
+    use: buildx
+    ids:
+      - agent
+  - build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--provenance=false"
+    dockerfile: Dockerfile.agent
+    goarch: amd64
+    image_templates:
+      - "alexandreh2ag/lets-go-tls-agent:v{{ .Version }}-amd64"
+    use: buildx
+    ids:
+      - agent
+
+docker_manifests:
+  - image_templates:
+      - "alexandreh2ag/lets-go-tls-server:v{{ .Version }}-arm64"
+      - "alexandreh2ag/lets-go-tls-server:v{{ .Version }}-amd64"
+    name_template: "alexandreh2ag/lets-go-tls-server:{{ .Tag }}"
+  - image_templates:
+      - "alexandreh2ag/lets-go-tls-agent:v{{ .Version }}-arm64"
+      - "alexandreh2ag/lets-go-tls-agent:v{{ .Version }}-amd64"
+    name_template: "alexandreh2ag/lets-go-tls-agent:{{ .Tag }}"
+
+archives:
+  - id: server
+    name_template: >-
+      {{ .ProjectName }}_server_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    builds:
+      - server
+    format: binary
+
+  - id: agent
+    name_template: >-
+      {{ .ProjectName }}_agent_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    builds:
+      - agent
+    format: binary
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

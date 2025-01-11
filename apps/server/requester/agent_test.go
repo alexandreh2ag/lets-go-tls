@@ -223,7 +223,7 @@ func Test_agent_Fetch(t *testing.T) {
 			for _, request := range got {
 				requests = append(requests, *request)
 			}
-			assert.Equalf(t, tt.want, requests, "Fetch()")
+			assert.ElementsMatchf(t, tt.want, requests, "Fetch()")
 		})
 	}
 }

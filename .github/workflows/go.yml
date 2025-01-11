@@ -1,0 +1,37 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Generate mock
+        run: ./bin/mock.sh
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build server
+        run: go build -v ./apps/server
+      - name: Build agent
+        run: go build -v ./apps/agent
+
+

@@ -351,18 +351,18 @@ cd lets-go-tls
 
 #### Server
 ```bash
-go build -o build/lets-go-tls_server apps/server/main.go
+go build -o dist/lets-go-tls_server apps/server/main.go
 
 # Run the server
-./build/lets-go-tls_server -c ./server.yml
+./dist/lets-go-tls_server -c ./server.yml
 ```
 
 #### Agent
 ```bash
-go build -o build/lets-go-tls_agent apps/agent/main.go
+go build -o dist/lets-go-tls_agent apps/agent/main.go
 
 # Run the agent
-./lets-go-tls_agent -c ./agent.yml
+./dist/lets-go-tls_agent -c ./agent.yml
 ```
 
 ### Tests
