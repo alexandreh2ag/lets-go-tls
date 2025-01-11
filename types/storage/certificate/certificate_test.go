@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -15,11 +16,11 @@ func (d dummyStorage) ID() string {
 	panic("implement me")
 }
 
-func (d dummyStorage) Save(certificates types.Certificates) []error {
+func (d dummyStorage) Save(certificates types.Certificates, _ chan<- *hook.Hook) []error {
 	panic("implement me")
 }
 
-func (d dummyStorage) Delete(certificates types.Certificates) []error {
+func (d dummyStorage) Delete(certificates types.Certificates, _ chan<- *hook.Hook) []error {
 	panic("implement me")
 }
 

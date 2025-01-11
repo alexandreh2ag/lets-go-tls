@@ -5,6 +5,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/go-playground/validator/v10"
@@ -46,7 +47,7 @@ func (t traefik) GetFilePath(cert *types.Certificate) string {
 	return filepath.Join(t.cfg.Path, fmt.Sprintf("%s%s.%s", t.cfg.PrefixFilename, cert.Identifier, "yml"))
 }
 
-func (t traefik) Save(certificates types.Certificates) []error {
+func (t traefik) Save(certificates types.Certificates, _ chan<- *hook.Hook) []error {
 	errors := []error{}
 	err := t.fs.MkdirAll(t.cfg.Path, 0770)
 	if err != nil {
@@ -60,10 +61,11 @@ func (t traefik) Save(certificates types.Certificates) []error {
 			continue
 		}
 	}
+
 	return errors
 }
 
-func (t traefik) Delete(certificates types.Certificates) []error {
+func (t traefik) Delete(certificates types.Certificates, _ chan<- *hook.Hook) []error {
 	errors := []error{}
 	for _, cert := range certificates {
 

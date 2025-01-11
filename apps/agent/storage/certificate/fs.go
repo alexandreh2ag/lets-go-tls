@@ -5,6 +5,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
+	"github.com/alexandreh2ag/lets-go-tls/hook"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/go-playground/validator/v10"
@@ -27,6 +28,7 @@ type ConfigFs struct {
 	Path                string                     `mapstructure:"path" validate:"required"`
 	PrefixFilename      string                     `mapstructure:"prefix_filename"`
 	SpecificIdentifiers []ConfigSpecificIdentifier `mapstructure:"specific_identifiers" validate:"unique=Identifier,dive"`
+	PostHook            *hook.Hook                 `mapstructure:"post_hook"`
 }
 
 type ConfigSpecificIdentifier struct {
@@ -57,7 +59,7 @@ func (f fs) GetFilePath(filename string) string {
 	return filepath.Join(f.cfg.Path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, filename))
 }
 
-func (f fs) Save(certificates types.Certificates) []error {
+func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
 	errors := []error{}
 	err := f.fs.MkdirAll(f.cfg.Path, 0770)
 	if err != nil {
@@ -65,6 +67,7 @@ func (f fs) Save(certificates types.Certificates) []error {
 		return errors
 	}
 
+	isChanged := false
 	for _, cert := range certificates {
 		keyPath := f.GetKeyPath(cert)
 		certPath := f.GetCertificatePath(cert)
@@ -75,6 +78,7 @@ func (f fs) Save(certificates types.Certificates) []error {
 		}
 
 		if !f.checksum.MustCompareContentWithPath(cert.Key, keyPath) {
+			isChanged = true
 			err = afero.WriteFile(f.fs, keyPath, cert.Key, 0660)
 			if err != nil {
 				errors = append(errors, fmt.Errorf("fail to write key %s: %v", keyPath, err))
@@ -83,6 +87,7 @@ func (f fs) Save(certificates types.Certificates) []error {
 		}
 
 		if !f.checksum.MustCompareContentWithPath(cert.Certificate, certPath) {
+			isChanged = true
 			err = afero.WriteFile(f.fs, certPath, cert.Certificate, 0660)
 			if err != nil {
 				errors = append(errors, fmt.Errorf("fail to write certificate %s: %v", certPath, err))
@@ -92,15 +97,22 @@ func (f fs) Save(certificates types.Certificates) []error {
 
 	}
 
+	if isChanged && f.cfg.PostHook != nil {
+		hookChan <- f.cfg.PostHook
+	}
+
 	return errors
 }
 
-func (f fs) Delete(certificates types.Certificates) []error {
+func (f fs) Delete(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
 	errors := []error{}
+
+	isChanged := false
 	for _, cert := range certificates {
 		keyPath := f.GetKeyPath(cert)
 		certPath := f.GetCertificatePath(cert)
 		if ok, _ := afero.Exists(f.fs, keyPath); ok {
+			isChanged = true
 			err := f.fs.Remove(keyPath)
 			if err != nil {
 				errors = append(errors, err)
@@ -108,12 +120,18 @@ func (f fs) Delete(certificates types.Certificates) []error {
 		}
 
 		if ok, _ := afero.Exists(f.fs, certPath); ok {
+			isChanged = true
 			err := f.fs.Remove(certPath)
 			if err != nil {
 				errors = append(errors, err)
 			}
 		}
 	}
+
+	if isChanged && f.cfg.PostHook != nil {
+		hookChan <- f.cfg.PostHook
+	}
+
 	return errors
 }
 

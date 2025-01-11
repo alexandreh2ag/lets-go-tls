@@ -1,6 +1,9 @@
 package certificate
 
-import "github.com/alexandreh2ag/lets-go-tls/types"
+import (
+	"github.com/alexandreh2ag/lets-go-tls/hook"
+	"github.com/alexandreh2ag/lets-go-tls/types"
+)
 
 type Storages map[string]Storage
 
@@ -13,6 +16,6 @@ func (s Storages) Get(key string) Storage {
 
 type Storage interface {
 	ID() string
-	Save(certificates types.Certificates) []error
-	Delete(certificates types.Certificates) []error
+	Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []error
+	Delete(certificates types.Certificates, hookChan chan<- *hook.Hook) []error
 }
