@@ -31,13 +31,19 @@ storages:
 - id: fs
   type: fs
   config:
+    only_matched_domains: false
     path: /var/lib/lets-go-tls/ssl
     post_hook:
       cmd: echo 1
       timeout: 1m0s
     prefix_filename: ""
-    specific_identifiers:
+    specific_domains:
     - identifier: custom
+      path: ""
+      domains:
+      - example.com
+    - identifier: custom
+      path: foo
       domains:
       - example.com
 - id: traefikV2
