@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
 	"path/filepath"
+	"slices"
 )
 
 const (
@@ -25,14 +26,16 @@ func init() {
 var _ certificate.Storage = &fs{}
 
 type ConfigFs struct {
-	Path                string                     `mapstructure:"path" validate:"required"`
-	PrefixFilename      string                     `mapstructure:"prefix_filename"`
-	SpecificIdentifiers []ConfigSpecificIdentifier `mapstructure:"specific_identifiers" validate:"unique=Identifier,dive"`
-	PostHook            *hook.Hook                 `mapstructure:"post_hook"`
+	Path               string                 `mapstructure:"path" validate:"required"`
+	PrefixFilename     string                 `mapstructure:"prefix_filename"`
+	OnlyMatchedDomains bool                   `mapstructure:"only_matched_domains"`
+	SpecificDomains    []ConfigSpecificDomain `mapstructure:"specific_domains" validate:"duplicate_path,dive"`
+	PostHook           *hook.Hook             `mapstructure:"post_hook"`
 }
 
-type ConfigSpecificIdentifier struct {
+type ConfigSpecificDomain struct {
 	Identifier string        `mapstructure:"identifier" validate:"required"`
+	Path       string        `mapstructure:"path"`
 	Domains    types.Domains `mapstructure:"domains" validate:"required,min=1"`
 }
 
@@ -48,15 +51,21 @@ func (f fs) ID() string {
 }
 
 func (f fs) GetKeyPath(cert *types.Certificate) string {
-	return f.GetFilePath(cert.GetKeyFilename())
+	return f.GetFilePath(f.cfg.Path, cert.GetKeyFilename())
 }
 
 func (f fs) GetCertificatePath(cert *types.Certificate) string {
-	return f.GetFilePath(cert.GetCertificateFilename())
+	return f.GetFilePath(f.cfg.Path, cert.GetCertificateFilename())
 }
 
-func (f fs) GetFilePath(filename string) string {
-	return filepath.Join(f.cfg.Path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, filename))
+func (f fs) GetFilePath(path, filename string) string {
+	if path == "" {
+		path = f.cfg.Path
+	} else if !filepath.IsAbs(path) {
+		path = filepath.Join(f.cfg.Path, path)
+	}
+
+	return filepath.Join(path, fmt.Sprintf("%s%s", f.cfg.PrefixFilename, filename))
 }
 
 func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
@@ -72,9 +81,11 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 		keyPath := f.GetKeyPath(cert)
 		certPath := f.GetCertificatePath(cert)
 
-		if identifier := f.GetSpecificIdentifier(cert); identifier != "" {
-			keyPath = f.GetFilePath(types.GetKeyFilename(identifier))
-			certPath = f.GetFilePath(types.GetCertificateFilename(identifier))
+		if specificDomainCfg := f.GetSpecificDomainConfig(cert); specificDomainCfg != nil {
+			keyPath = f.GetFilePath(specificDomainCfg.Path, types.GetKeyFilename(specificDomainCfg.Identifier))
+			certPath = f.GetFilePath(specificDomainCfg.Path, types.GetCertificateFilename(specificDomainCfg.Identifier))
+		} else if f.cfg.OnlyMatchedDomains && len(f.cfg.SpecificDomains) > 0 {
+			continue
 		}
 
 		if !f.checksum.MustCompareContentWithPath(cert.Key, keyPath) {
@@ -135,14 +146,14 @@ func (f fs) Delete(certificates types.Certificates, hookChan chan<- *hook.Hook) 
 	return errors
 }
 
-func (f fs) GetSpecificIdentifier(cert *types.Certificate) string {
-	for _, specificIdentifier := range f.cfg.SpecificIdentifiers {
-		if cert.Match(specificIdentifier.Domains) {
-			return specificIdentifier.Identifier
+func (f fs) GetSpecificDomainConfig(cert *types.Certificate) *ConfigSpecificDomain {
+	for _, specificDomainCfg := range f.cfg.SpecificDomains {
+		if cert.Match(specificDomainCfg.Domains) {
+			return &specificDomainCfg
 		}
 	}
 
-	return ""
+	return nil
 }
 
 func createFsStorage(ctx *context.AgentContext, cfg config.StorageConfig) (certificate.Storage, error) {
@@ -153,6 +164,7 @@ func createFsStorage(ctx *context.AgentContext, cfg config.StorageConfig) (certi
 	}
 
 	validate := validator.New()
+	_ = validate.RegisterValidation("duplicate_path", ValidateSpecificDomainsCfg())
 	err = validate.Struct(instanceConfig)
 	if err != nil {
 		return nil, err
@@ -161,4 +173,20 @@ func createFsStorage(ctx *context.AgentContext, cfg config.StorageConfig) (certi
 	instance := &fs{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.Fs)}
 
 	return instance, nil
+}
+
+func ValidateSpecificDomainsCfg() func(level validator.FieldLevel) bool {
+	return func(fl validator.FieldLevel) bool {
+		specificDomainsCfg := fl.Field().Interface().([]ConfigSpecificDomain)
+		uniquesPath := []string{}
+		for _, domainCfg := range specificDomainsCfg {
+			path := filepath.Join(domainCfg.Path, domainCfg.Identifier)
+			if slices.Contains(uniquesPath, path) {
+				return false
+			}
+			uniquesPath = append(uniquesPath, path)
+		}
+
+		return true
+	}
 }

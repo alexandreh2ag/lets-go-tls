@@ -168,8 +168,9 @@ func getAgentConfig() agentConfig.Config {
 			Config: decodeToMap(certificate.ConfigFs{
 				Path:           "/var/lib/lets-go-tls/ssl",
 				PrefixFilename: "",
-				SpecificIdentifiers: []certificate.ConfigSpecificIdentifier{
+				SpecificDomains: []certificate.ConfigSpecificDomain{
 					{Identifier: "custom", Domains: types.Domains{"example.com"}},
+					{Identifier: "custom", Path: "foo", Domains: types.Domains{"example.com"}},
 				},
 				PostHook: &hook.Hook{
 					Cmd:     "echo 1",

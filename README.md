@@ -263,8 +263,10 @@ storages:
       config:
           path: /var/lib/lets-go-tls/ssl # mandatory
           prefix_filename: "ssl."
-          specific_identifiers:
+          only_matched_domains: false # when true, only store certificate specified in specific_domains
+          specific_domains:
             - identifier: custom # mandatory
+              path: "custom" # optional, can be absolut or relative
               domains: # mandatory
                 - bar.com
           post_hook:
