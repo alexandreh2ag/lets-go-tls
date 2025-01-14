@@ -3,10 +3,11 @@ package cli
 import (
 	"github.com/alexandreh2ag/lets-go-tls/version"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 func GetVersionCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Show version info",
 		Run:   GetVersionRunFn(),
@@ -14,6 +15,8 @@ func GetVersionCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.SetOut(os.Stdout)
+	return cmd
 }
 
 func GetVersionRunFn() func(*cobra.Command, []string) {
