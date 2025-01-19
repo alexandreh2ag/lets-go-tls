@@ -6,6 +6,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
 	"github.com/alexandreh2ag/lets-go-tls/hook"
+	"github.com/alexandreh2ag/lets-go-tls/os"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/go-playground/validator/v10"
@@ -31,6 +32,9 @@ type ConfigFs struct {
 	OnlyMatchedDomains bool                   `mapstructure:"only_matched_domains"`
 	SpecificDomains    []ConfigSpecificDomain `mapstructure:"specific_domains" validate:"duplicate_path,dive"`
 	PostHook           *hook.Hook             `mapstructure:"post_hook"`
+
+	Owner string `mapstructure:"owner"`
+	Group string `mapstructure:"group"`
 }
 
 type ConfigSpecificDomain struct {
@@ -44,6 +48,9 @@ type fs struct {
 	fs       afero.Fs
 	checksum *appFs.Checksum
 	cfg      ConfigFs
+
+	uid int
+	gid int
 }
 
 func (f fs) ID() string {
@@ -95,6 +102,12 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 				errors = append(errors, fmt.Errorf("fail to write key %s: %v", keyPath, err))
 				continue
 			}
+
+			err = f.fs.Chown(keyPath, f.uid, f.gid)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("fail to chown %s: %v", keyPath, err))
+				continue
+			}
 		}
 
 		if !f.checksum.MustCompareContentWithPath(cert.Certificate, certPath) {
@@ -102,6 +115,12 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 			err = afero.WriteFile(f.fs, certPath, cert.Certificate, 0660)
 			if err != nil {
 				errors = append(errors, fmt.Errorf("fail to write certificate %s: %v", certPath, err))
+				continue
+			}
+
+			err = f.fs.Chown(keyPath, f.uid, f.gid)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("fail to chown %s: %v", keyPath, err))
 				continue
 			}
 		}
@@ -170,7 +189,10 @@ func createFsStorage(ctx *context.AgentContext, cfg config.StorageConfig) (certi
 		return nil, err
 	}
 
-	instance := &fs{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.Fs)}
+	uid := os.GetUserUID(instanceConfig.Owner)
+	gid := os.GetGroupUID(instanceConfig.Group)
+
+	instance := &fs{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 
 	return instance, nil
 }
