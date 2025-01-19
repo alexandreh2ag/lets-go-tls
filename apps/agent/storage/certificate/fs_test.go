@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -24,7 +25,9 @@ func Test_fs_ID(t *testing.T) {
 
 func Test_createFsStorage(t *testing.T) {
 	ctx := context.TestContext(nil)
-	storage := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	uid := os.Getuid()
+	gid := os.Getgid()
+	storage := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 	storageSpecificDomains := &fs{
 		id: "foo",
 		fs: ctx.Fs,
@@ -33,6 +36,8 @@ func Test_createFsStorage(t *testing.T) {
 			{Identifier: "test2", Domains: types.Domains{"example2.com"}},
 		}},
 		checksum: appFs.NewChecksum(ctx.Fs),
+		uid:      uid,
+		gid:      gid,
 	}
 	tests := []struct {
 		name        string
@@ -280,7 +285,7 @@ func Test_fs_Save_FailWriteKey(t *testing.T) {
 	assert.Len(t, errs, 1)
 }
 
-func Test_fs_Save_FailCertificateKey(t *testing.T) {
+func Test_fs_Save_FailChownKey(t *testing.T) {
 	ctx := context.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
@@ -292,8 +297,51 @@ func Test_fs_Save_FailCertificateKey(t *testing.T) {
 		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
+	)
+	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	assert.Len(t, errs, 1)
+}
+
+func Test_fs_Save_FailWriteCertificate(t *testing.T) {
+	ctx := context.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	fsMock := mockAfero.NewMockFs(ctrl)
+	certificates := types.Certificates{
+		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	file, _ := ctx.Fs.Create("/app/test.txt")
+	gomock.InOrder(
+		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
+	)
+	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
+	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	assert.Len(t, errs, 1)
+}
+
+func Test_fs_Save_FailChownCertificate(t *testing.T) {
+	ctx := context.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	fsMock := mockAfero.NewMockFs(ctrl)
+	certificates := types.Certificates{
+		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	file, _ := ctx.Fs.Create("/app/test.txt")
+	file2, _ := ctx.Fs.Create("/app/test.txt")
+	gomock.InOrder(
+		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file2, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
 	errs := storage.Save(certificates, make(chan<- *hook.Hook))

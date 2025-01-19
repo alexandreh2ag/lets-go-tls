@@ -168,6 +168,8 @@ func getAgentConfig() agentConfig.Config {
 			Config: decodeToMap(certificate.ConfigFs{
 				Path:           "/var/lib/lets-go-tls/ssl",
 				PrefixFilename: "",
+				Owner:          "root",
+				Group:          "root",
 				SpecificDomains: []certificate.ConfigSpecificDomain{
 					{Identifier: "custom", Domains: types.Domains{"example.com"}},
 					{Identifier: "custom", Path: "foo", Domains: types.Domains{"example.com"}},
@@ -184,6 +186,8 @@ func getAgentConfig() agentConfig.Config {
 			Config: decodeToMap(certificate.ConfigTraefik{
 				Path:           "/etc/traefik/config",
 				PrefixFilename: "",
+				Owner:          "root",
+				Group:          "root",
 			}),
 		},
 		{
@@ -192,6 +196,8 @@ func getAgentConfig() agentConfig.Config {
 			Config: decodeToMap(certificate.ConfigTraefik{
 				Path:           "/etc/traefik/config",
 				PrefixFilename: "",
+				Owner:          "root",
+				Group:          "root",
 			}),
 		},
 	}

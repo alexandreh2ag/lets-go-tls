@@ -2,6 +2,7 @@ package certificate
 
 import (
 	"errors"
+	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
@@ -10,8 +11,10 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/spf13/afero"
+	"github.com/spf13/afero/mem"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -23,7 +26,9 @@ func Test_traefik_ID(t *testing.T) {
 
 func Test_createTraefikStorage(t *testing.T) {
 	ctx := context.TestContext(nil)
-	storage := &traefik{id: "foo", fs: ctx.Fs, cfg: ConfigTraefik{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	uid := os.Getuid()
+	gid := os.Getgid()
+	storage := &traefik{id: "foo", fs: ctx.Fs, cfg: ConfigTraefik{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 	tests := []struct {
 		name        string
 		cfg         config.StorageConfig
@@ -150,4 +155,57 @@ func Test_traefik_Delete(t1 *testing.T) {
 		cfg: ConfigTraefik{Path: "/app"},
 	}
 	assert.Equalf(t1, want, t.Delete(certificates, make(chan<- *hook.Hook)), "Delete(%v)", certificates)
+}
+
+func Test_traefik_WriteCertFile(t1 *testing.T) {
+	cert := &types.Certificate{Identifier: "example.com-0", Certificate: []byte("certificate"), Key: []byte("key")}
+	ctrl := gomock.NewController(t1)
+
+	tests := []struct {
+		name    string
+		mockFn  func(fs *mockAfero.MockFs)
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "Success",
+			mockFn: func(fs *mockAfero.MockFs) {
+				fs.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				fs.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(mem.NewFileHandle(mem.CreateFile("/app/file")), nil)
+				fs.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "FailWrite",
+			mockFn: func(fs *mockAfero.MockFs) {
+				fs.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				fs.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("fail write"))
+			},
+			wantErr: assert.Error,
+		},
+
+		{
+			name: "FailChown",
+			mockFn: func(fs *mockAfero.MockFs) {
+				fs.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				fs.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(mem.NewFileHandle(mem.CreateFile("/app/file")), nil)
+				fs.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown"))
+			},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			fsMock := mockAfero.NewMockFs(ctrl)
+			tt.mockFn(fsMock)
+			checksum := appFs.NewChecksum(fsMock)
+			t := traefik{
+				id:       "traefik",
+				fs:       fsMock,
+				checksum: checksum,
+				cfg:      ConfigTraefik{Path: "/app"},
+			}
+			tt.wantErr(t1, t.WriteCertFile(cert), fmt.Sprintf("WriteCertFile(%v)", cert))
+		})
+	}
 }

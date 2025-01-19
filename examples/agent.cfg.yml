@@ -31,7 +31,9 @@ storages:
 - id: fs
   type: fs
   config:
+    group: root
     only_matched_domains: false
+    owner: root
     path: /var/lib/lets-go-tls/ssl
     post_hook:
       cmd: echo 1
@@ -49,10 +51,14 @@ storages:
 - id: traefikV2
   type: traefikV2
   config:
+    group: root
+    owner: root
     path: /etc/traefik/config
     prefix_filename: ""
 - id: traefikV3
   type: traefikV3
   config:
+    group: root
+    owner: root
     path: /etc/traefik/config
     prefix_filename: ""

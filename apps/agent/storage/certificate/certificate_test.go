@@ -6,12 +6,15 @@ import (
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
 func Test_createStorage_Success(t *testing.T) {
+	uid := os.Getuid()
+	gid := os.Getgid()
 	ctx := context.TestContext(nil)
-	want := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	want := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 	cfg := config.StorageConfig{
 		Id:     "foo",
 		Type:   "fs",
@@ -36,6 +39,8 @@ func Test_createStorage_Fail(t *testing.T) {
 }
 
 func TestCreateStorages_Success(t *testing.T) {
+	uid := os.Getuid()
+	gid := os.Getgid()
 	ctx := context.TestContext(nil)
 	ctx.Config.Storages = []config.StorageConfig{
 		{
@@ -44,7 +49,7 @@ func TestCreateStorages_Success(t *testing.T) {
 			Config: map[string]interface{}{"path": "/app"},
 		},
 	}
-	staticP := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	staticP := &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 	want := certificate.Storages{"foo": staticP}
 	got, err := CreateCertificateStorages(ctx)
 	assert.NoError(t, err)

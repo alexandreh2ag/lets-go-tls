@@ -6,6 +6,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
 	"github.com/alexandreh2ag/lets-go-tls/hook"
+	"github.com/alexandreh2ag/lets-go-tls/os"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/go-playground/validator/v10"
@@ -30,6 +31,9 @@ var _ certificate.Storage = &traefik{}
 type ConfigTraefik struct {
 	Path           string `mapstructure:"path" validate:"required"`
 	PrefixFilename string `mapstructure:"prefix_filename"`
+
+	Owner string `mapstructure:"owner"`
+	Group string `mapstructure:"group"`
 }
 
 type traefik struct {
@@ -37,6 +41,9 @@ type traefik struct {
 	fs       afero.Fs
 	checksum *appFs.Checksum
 	cfg      ConfigTraefik
+
+	uid int
+	gid int
 }
 
 func (t traefik) ID() string {
@@ -91,12 +98,15 @@ func (t traefik) WriteCertFile(cert *types.Certificate) error {
 	content, _ := yaml.Marshal(data)
 
 	if !t.checksum.MustCompareContentWithPath(content, path) {
-		return afero.WriteFile(
-			t.fs,
-			path,
-			content,
-			0660,
-		)
+		errWrite := afero.WriteFile(t.fs, path, content, 0660)
+		if errWrite != nil {
+			return fmt.Errorf("fail to write %s: %v", path, errWrite)
+		}
+		errChown := t.fs.Chown(path, t.uid, t.gid)
+		if errChown != nil {
+			return fmt.Errorf("fail to chown %s: %v", path, errChown)
+		}
+
 	}
 	return nil
 }
@@ -114,7 +124,10 @@ func createTraefikStorage(ctx *context.AgentContext, cfg config.StorageConfig) (
 		return nil, err
 	}
 
-	instance := &traefik{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.Fs)}
+	uid := os.GetUserUID(instanceConfig.Owner)
+	gid := os.GetGroupUID(instanceConfig.Group)
+
+	instance := &traefik{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
 
 	return instance, nil
 }

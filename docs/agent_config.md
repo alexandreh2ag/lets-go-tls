@@ -68,6 +68,8 @@ storages:
       config:
           path: /var/lib/lets-go-tls/ssl # mandatory
           prefix_filename: "ssl."
+          owner: "root"
+          group: "root"
           only_matched_domains: false # when true, only store certificate specified in specific_domains
           specific_domains:
             - identifier: custom # mandatory
@@ -105,6 +107,8 @@ storages:
       config:
           path: /var/lib/traefik/ssl # mandatory
           prefix_filename: "ssl."
+          owner: "root"
+          group: "root"
 ```
 
 tree structure example:
