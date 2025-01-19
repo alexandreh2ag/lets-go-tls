@@ -39,7 +39,7 @@ func Test_createStaticProvider(t *testing.T) {
 			name: "Success",
 			cfg: config.RequesterConfig{
 				Id:     "foo",
-				Config: map[string]interface{}{"domains": [][]string{{"foo.com"}}},
+				Config: map[string]interface{}{"domains": [][]string{{"foo.com"}, {"127.0.0.1"}}},
 			},
 			want:    want,
 			wantErr: false,

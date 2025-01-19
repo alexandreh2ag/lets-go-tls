@@ -2,6 +2,7 @@ package types
 
 import (
 	"cmp"
+	"net"
 	"slices"
 	"strings"
 )
@@ -50,6 +51,16 @@ func (ds Domains) ContainsWildcard() bool {
 type DomainRequest struct {
 	Domains   Domains   `json:"domains"`
 	Requester Requester `json:"-"`
+}
+
+func (dr DomainRequest) IsIP() bool {
+	for _, domain := range dr.Domains {
+		ip := net.ParseIP(string(domain))
+		if ip != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func SortDomainsRequests(domainsRequests []*DomainRequest) {

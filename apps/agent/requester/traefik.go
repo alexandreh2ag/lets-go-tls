@@ -17,6 +17,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 )
@@ -74,16 +75,24 @@ func (t *traefik) Fetch() ([]*types.DomainRequest, error) {
 			defer wg.Done()
 			domainsAgent, err := t.FetchInstance(address)
 			if err != nil {
-				formatError := fmt.Errorf("agent (%s) failed to fetch with: %v", t.id, err)
+				formatError := fmt.Errorf("requester (%s) failed to fetch with: %v", t.id, err)
 				t.logger.Error(formatError.Error())
-				merr = multierror.Append(merr, fmt.Errorf("agent (%s) failed to fetch with: %v", t.id, formatError))
+				merr = multierror.Append(merr, fmt.Errorf("requester (%s) failed to fetch with: %v", t.id, formatError))
 			}
+
 			lock.Lock()
 			defer lock.Unlock()
 			domains = append(domains, domainsAgent...)
 		}()
 	}
 	wg.Wait()
+
+	domains = slices.DeleteFunc(domains, func(item *types.DomainRequest) bool {
+		if item.IsIP() {
+			return true
+		}
+		return false
+	})
 
 	for _, domain := range domains {
 		domain.Requester = t

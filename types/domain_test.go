@@ -170,3 +170,46 @@ func TestDomains_ContainsWildcard(t *testing.T) {
 		})
 	}
 }
+
+func TestDomainRequest_IsIP(t *testing.T) {
+
+	tests := []struct {
+		name    string
+		Domains Domains
+		want    bool
+	}{
+		{
+			name:    "isIpPrivateV4",
+			Domains: Domains{"127.0.0.1"},
+			want:    true,
+		},
+		{
+			name:    "isIpPublicV4",
+			Domains: Domains{"8.8.8.8"},
+			want:    true,
+		},
+		{
+			name:    "isIpPrivateV6",
+			Domains: Domains{"::1"},
+			want:    true,
+		},
+		{
+			name:    "isIpPublicV6",
+			Domains: Domains{"2001:4860:4860::8888"},
+			want:    true,
+		},
+		{
+			name:    "isDomain",
+			Domains: Domains{"example.com"},
+			want:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dr := DomainRequest{
+				Domains: tt.Domains,
+			}
+			assert.Equalf(t, tt.want, dr.IsIP(), "IsIP()")
+		})
+	}
+}

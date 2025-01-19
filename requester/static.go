@@ -6,6 +6,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
+	"slices"
 )
 
 const (
@@ -55,6 +56,13 @@ func createStaticProvider(_ context.Context, cfg config.RequesterConfig) (types.
 			instance.domainRequests = append(instance.domainRequests, domainRequest)
 		}
 	}
+
+	instance.domainRequests = slices.DeleteFunc(instance.domainRequests, func(item *types.DomainRequest) bool {
+		if item.IsIP() {
+			return true
+		}
+		return false
+	})
 
 	return instance, nil
 }

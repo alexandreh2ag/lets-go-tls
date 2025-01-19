@@ -17,13 +17,13 @@ import (
 	"testing"
 )
 
-func Test_agent_ID(t *testing.T) {
+func Test_traefik_ID(t *testing.T) {
 	want := "foo"
 	instance := &traefik{id: want}
 	assert.Equalf(t, want, instance.ID(), "ID()")
 }
 
-func Test_createAgentProvider(t *testing.T) {
+func Test_createTraefikV2Provider(t *testing.T) {
 	ctx := context.TestContext(nil)
 	want := &traefik{id: "foo", logger: ctx.Logger}
 	want.addresses = []string{"127.0.0.1:80", "127.0.0.1:81"}
@@ -80,7 +80,7 @@ func Test_createAgentProvider(t *testing.T) {
 	}
 }
 
-func Test_agent_FetchAgent(t *testing.T) {
+func Test_traefik_FetchIntance(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	a := &traefik{}
 	want := []types.DomainRequest{
@@ -155,7 +155,7 @@ func Test_agent_FetchAgent(t *testing.T) {
 	}
 }
 
-func Test_agent_Fetch(t *testing.T) {
+func Test_traefik_Fetch(t *testing.T) {
 	ctx := context.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	a := &traefik{addresses: []string{"127.0.0.1:80", "127.0.0.1:81"}, logger: ctx.Logger}
@@ -179,7 +179,10 @@ func Test_agent_Fetch(t *testing.T) {
 			funcMock: func(clientHttp *mockHttp.MockClient) {
 				resp1 := fasthttp.Response{}
 				resp1.SetStatusCode(http.StatusOK)
-				body, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
+				body, _ := json.Marshal([]traefikConfigDynamic.Router{
+					{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}},
+					{Rule: "Host(`127.0.0.1`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}},
+				})
 				resp1.SetBody(body)
 
 				resp2 := fasthttp.Response{}
