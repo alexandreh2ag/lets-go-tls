@@ -9,6 +9,10 @@ unused_retention: 336h0m0s # time to keep in store unused certificate. default: 
 http:
     listen: 0.0.0.0:8080 # server listen address. default: 0.0.0.0:8080
     metrics_enable: false # enable metrics on path `/metrics`. default: false
+    tls:
+        enable: false
+        cert_path: "/ssl/certificate.crt" # mandatory only when enable is true
+        key_path: "/ssl/private.key" # mandatory only when enable is true
 jwt:
     key: superSecret # secret to sign JWT token
     method: HS256 # method used to sign JWT token. default: HS256

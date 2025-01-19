@@ -46,6 +46,10 @@ cache:
 http:
   listen: 0.0.0.0:8080
   metrics_enable: false
+  tls:
+    cert_path: ""
+    enable: false
+    key_path: ""
 interval: 5m0s
 jwt:
   key: superSecret

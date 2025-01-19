@@ -41,8 +41,15 @@ func CreateServerHTTP(ctx *context.ServerContext, httpProvider *acmeHttp.Challen
 	authorizedGroup.POST(http.GetApiPrefix(http.ServerApiGetCertificates), controller.GetCertificatesFromRequests)
 
 	go func() {
-		err := e.Start(ctx.Config.HTTP.Listen)
-		ctx.Logger.Error(err.Error())
+		var err error
+		if ctx.Config.HTTP.TLS.Enable {
+			err = e.StartTLS(ctx.Config.HTTP.Listen, ctx.Config.HTTP.TLS.CertPath, ctx.Config.HTTP.TLS.KeyPath)
+		} else {
+			err = e.Start(ctx.Config.HTTP.Listen)
+		}
+		if err != nil {
+			panic(fmt.Errorf("fail to start http server with %v", err))
+		}
 	}()
 
 	return e, nil
