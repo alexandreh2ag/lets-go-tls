@@ -56,9 +56,9 @@ func (a *agent) Fetch() ([]*types.DomainRequest, error) {
 			defer wg.Done()
 			domainsAgent, err := a.FetchAgent(address)
 			if err != nil {
-				formatError := fmt.Errorf("agent (%s) failed to fetch with: %v", a.id, err)
+				formatError := fmt.Errorf("requester (%s) failed to fetch with: %v", a.id, err)
 				a.logger.Error(formatError.Error())
-				merr = multierror.Append(merr, fmt.Errorf("agent (%s) failed to fetch with: %v", a.id, formatError))
+				merr = multierror.Append(merr, fmt.Errorf("requester (%s) failed to fetch with: %v", a.id, formatError))
 			}
 			lock.Lock()
 			defer lock.Unlock()
