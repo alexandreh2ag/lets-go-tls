@@ -77,11 +77,6 @@ func (f fs) GetFilePath(path, filename string) string {
 
 func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
 	errors := []error{}
-	err := f.fs.MkdirAll(f.cfg.Path, 0770)
-	if err != nil {
-		errors = append(errors, fmt.Errorf("unable to create dir %s: %v", f.cfg.Path, err))
-		return errors
-	}
 
 	isChanged := false
 	for _, cert := range certificates {
@@ -93,6 +88,12 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 			certPath = f.GetFilePath(specificDomainCfg.Path, types.GetCertificateFilename(specificDomainCfg.Identifier))
 		} else if f.cfg.OnlyMatchedDomains && len(f.cfg.SpecificDomains) > 0 {
 			continue
+		}
+
+		err := f.fs.MkdirAll(filepath.Dir(keyPath), 0770)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("unable to create dir %s: %v", f.cfg.Path, err))
+			return errors
 		}
 
 		if !f.checksum.MustCompareContentWithPath(cert.Key, keyPath) {
@@ -118,9 +119,9 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 				continue
 			}
 
-			err = f.fs.Chown(keyPath, f.uid, f.gid)
+			err = f.fs.Chown(certPath, f.uid, f.gid)
 			if err != nil {
-				errors = append(errors, fmt.Errorf("fail to chown %s: %v", keyPath, err))
+				errors = append(errors, fmt.Errorf("fail to chown %s: %v", certPath, err))
 				continue
 			}
 		}
