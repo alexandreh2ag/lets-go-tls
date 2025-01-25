@@ -89,10 +89,10 @@ func (f fs) Save(certificates types.Certificates, hookChan chan<- *hook.Hook) []
 		} else if f.cfg.OnlyMatchedDomains && len(f.cfg.SpecificDomains) > 0 {
 			continue
 		}
-
-		err := f.fs.MkdirAll(filepath.Dir(keyPath), 0770)
+		path := filepath.Dir(keyPath)
+		err := appFs.MkdirAllWithChown(f.fs, path, 0755, f.uid, f.gid)
 		if err != nil {
-			errors = append(errors, fmt.Errorf("unable to create dir %s: %v", f.cfg.Path, err))
+			errors = append(errors, fmt.Errorf("unable to create dir %s: %v", path, err))
 			return errors
 		}
 

@@ -56,7 +56,8 @@ func (t traefik) GetFilePath(cert *types.Certificate) string {
 
 func (t traefik) Save(certificates types.Certificates, _ chan<- *hook.Hook) []error {
 	errors := []error{}
-	err := t.fs.MkdirAll(t.cfg.Path, 0770)
+
+	err := appFs.MkdirAllWithChown(t.fs, t.cfg.Path, 0755, t.uid, t.gid)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("unable to create dir %s: %v", t.cfg.Path, err))
 		return errors
