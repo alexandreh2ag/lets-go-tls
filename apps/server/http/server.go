@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	buildinHttp "net/http"
 )
 
 const (
@@ -47,7 +48,7 @@ func CreateServerHTTP(ctx *context.ServerContext, httpProvider *acmeHttp.Challen
 		} else {
 			err = e.Start(ctx.Config.HTTP.Listen)
 		}
-		if err != nil {
+		if err != nil && err != buildinHttp.ErrServerClosed {
 			panic(fmt.Errorf("fail to start http server with %v", err))
 		}
 	}()
