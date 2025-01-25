@@ -23,7 +23,7 @@ func GetGroupUID(group string) int {
 	groupInfo, err := user.Lookup(group)
 
 	if err == nil && groupInfo != nil {
-		gid, errConv := strconv.Atoi(groupInfo.Uid)
+		gid, errConv := strconv.Atoi(groupInfo.Gid)
 		if errConv == nil {
 			return gid
 		}

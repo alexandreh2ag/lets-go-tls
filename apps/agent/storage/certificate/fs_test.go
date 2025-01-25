@@ -263,7 +263,9 @@ func Test_fs_Save_FailCreateDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
 	fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error"))
-	certificates := types.Certificates{}
+	certificates := types.Certificates{
+		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
 	errs := storage.Save(certificates, make(chan<- *hook.Hook))
 	assert.Len(t, errs, 1)
