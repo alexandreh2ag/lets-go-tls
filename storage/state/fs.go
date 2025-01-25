@@ -12,6 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
+	"log/slog"
 )
 
 const (
@@ -30,6 +31,7 @@ type ConfigFs struct {
 
 type fs struct {
 	fs       afero.Fs
+	logger   *slog.Logger
 	checksum *appFs.Checksum
 	cfg      ConfigFs
 }
@@ -60,6 +62,7 @@ func (f fs) Save(state *types.State) error {
 	data, _ := json.Marshal(state)
 
 	if !f.checksum.MustCompareContentWithPath(data, f.cfg.Path) {
+		f.logger.Info(fmt.Sprintf("save state to %s", f.cfg.Path))
 		err := afero.WriteFile(f.fs, f.cfg.Path, data, 0660)
 		if err != nil {
 			return fmt.Errorf("failed to write in %s: %v", f.cfg.Path, err)
@@ -82,7 +85,7 @@ func createFsStorage(ctx context.Context, cfg config.StateConfig) (state.Storage
 		return nil, err
 	}
 
-	instance := &fs{fs: ctx.GetFS(), cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.GetFS())}
+	instance := &fs{fs: ctx.GetFS(), logger: ctx.GetLogger(), cfg: instanceConfig, checksum: appFs.NewChecksum(ctx.GetFS())}
 
 	return instance, nil
 }

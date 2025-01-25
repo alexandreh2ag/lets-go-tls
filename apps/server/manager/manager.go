@@ -154,6 +154,7 @@ func (cm *CertifierManager) Run(ctx *appCtx.ServerContext) error {
 
 	// remove unused certificates when retention expired or mark for retention and only if errFetch is nil
 	if len(errFetch) == 0 {
+		ctx.Logger.Info(fmt.Sprintf("clean up unused certificates"))
 		state.Certificates = cm.CleanUnusedCertificates(ctx, state.Certificates, domainsRequests)
 	}
 
@@ -210,6 +211,7 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 				Bundle:     true,
 				MustStaple: false,
 			}
+			ctx.Logger.Info(fmt.Sprintf("obtain certificate %s (%v)", certificate.Identifier, certificate.Domains.ToStringSlice()))
 			certAcme, err = resolver.Obtain(request)
 		} else if certificate.ExpirationDate.Before(time.Now().Add(cfgAcme.RenewPeriod * -1)) {
 			certRes := legoCertificate.Resource{
@@ -218,6 +220,7 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 				Certificate: certificate.Certificate,
 			}
 			options := &legoCertificate.RenewOptions{Bundle: true, MustStaple: false}
+			ctx.Logger.Info(fmt.Sprintf("renew certificate %s (%v)", certificate.Identifier, certificate.Domains.ToStringSlice()))
 			certAcme, err = resolver.RenewWithOptions(certRes, options)
 		} else {
 			ctx.Logger.Debug(fmt.Sprintf("nothing to do for certificate %s", certificate.Identifier))
