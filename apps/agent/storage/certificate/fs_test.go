@@ -262,7 +262,11 @@ func Test_fs_Save_SuccessWithOnlyMatchedDomains(t *testing.T) {
 func Test_fs_Save_FailCreateDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
-	fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error"))
+	gomock.InOrder(
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error")),
+	)
+
 	certificates := types.Certificates{
 		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
 	}
@@ -278,7 +282,9 @@ func Test_fs_Save_FailWriteKey(t *testing.T) {
 		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
 	}
 	gomock.InOrder(
-		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
@@ -296,7 +302,9 @@ func Test_fs_Save_FailChownKey(t *testing.T) {
 	}
 	file, _ := ctx.Fs.Create("/app/test.txt")
 	gomock.InOrder(
-		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
 		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
@@ -315,7 +323,9 @@ func Test_fs_Save_FailWriteCertificate(t *testing.T) {
 	}
 	file, _ := ctx.Fs.Create("/app/test.txt")
 	gomock.InOrder(
-		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
 		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
@@ -337,7 +347,9 @@ func Test_fs_Save_FailChownCertificate(t *testing.T) {
 	file, _ := ctx.Fs.Create("/app/test.txt")
 	file2, _ := ctx.Fs.Create("/app/test.txt")
 	gomock.InOrder(
-		fsMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
 		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
