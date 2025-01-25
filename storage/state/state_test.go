@@ -10,7 +10,7 @@ import (
 
 func TestCreateStorage_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	want := &fs{fs: ctx.Fs, cfg: ConfigFs{Path: "/app/acme.json"}, checksum: appFs.NewChecksum(ctx.Fs)}
+	want := &fs{fs: ctx.Fs, logger: ctx.GetLogger(), cfg: ConfigFs{Path: "/app/acme.json"}, checksum: appFs.NewChecksum(ctx.Fs)}
 	cfg := config.StateConfig{Type: FsKey, Config: map[string]interface{}{"path": "/app/acme.json"}}
 	got, err := CreateStorage(ctx, cfg)
 	assert.NoError(t, err)

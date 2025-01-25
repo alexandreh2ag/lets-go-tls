@@ -63,7 +63,7 @@ func Test_fs_Load_FailMarshalFile(t *testing.T) {
 func Test_fs_Save_Success(t *testing.T) {
 	ctx := appCtx.TestContext(nil)
 	basePath := "/app"
-	stateStorage := &fs{fs: ctx.Fs, cfg: ConfigFs{Path: path.Join(basePath, "acme.json")}, checksum: appFs.NewChecksum(ctx.Fs)}
+	stateStorage := &fs{fs: ctx.Fs, logger: ctx.Logger, cfg: ConfigFs{Path: path.Join(basePath, "acme.json")}, checksum: appFs.NewChecksum(ctx.Fs)}
 	s := &types.State{
 		Account:      &acme.Account{Email: "dev@foo.com", Registration: &registration.Resource{Body: legoAcme.Account{Status: "valid"}, URI: "https://uri.com"}, Key: []byte("privatekey")},
 		Certificates: types.Certificates{{Domains: types.Domains{"foo.com", "bar.com"}, Key: []byte("key"), Certificate: []byte("certificate")}},
@@ -101,7 +101,7 @@ func Test_createFsStorage(t *testing.T) {
 					"path": "/app/acme.jsom",
 				},
 			},
-			want: &fs{fs: ctx.Fs, cfg: ConfigFs{Path: "/app/acme.jsom"}, checksum: appFs.NewChecksum(ctx.Fs)},
+			want: &fs{fs: ctx.Fs, logger: ctx.Logger, cfg: ConfigFs{Path: "/app/acme.jsom"}, checksum: appFs.NewChecksum(ctx.Fs)},
 		},
 		{
 			name: "FailDecodeCfg",

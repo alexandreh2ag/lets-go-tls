@@ -167,7 +167,7 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 	}
 
 	if !stateDeleteUnusedCertificates && len(unusedCertificates) > 0 {
-		ctx.Logger.Debug("delete unused certificates in state")
+		ctx.Logger.Info("clean up unused certificates in state")
 		state.Certificates = state.Certificates.Deletes(unusedCertificates)
 	}
 
