@@ -12,8 +12,7 @@ func TestCreateServerHTTP(t *testing.T) {
 	ctx.Config.HTTP.Listen = "127.0.0.1:0"
 	ctx.Config.HTTP.MetricsEnable = true
 
-	got, err := CreateServerHTTP(ctx)
+	got := CreateServerHTTP(ctx)
 	time.Sleep(200 * time.Millisecond)
-	assert.NoError(t, err)
 	assert.NotNil(t, got)
 }

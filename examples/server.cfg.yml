@@ -50,6 +50,7 @@ http:
     cert_path: ""
     enable: false
     key_path: ""
+    listen: ""
 interval: 5m0s
 jwt:
   key: superSecret

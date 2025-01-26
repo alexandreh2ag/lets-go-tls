@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
-	"github.com/alexandreh2ag/lets-go-tls/apps/server/http"
+	appSrvHttp "github.com/alexandreh2ag/lets-go-tls/apps/server/http"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/manager"
+	appHttp "github.com/alexandreh2ag/lets-go-tls/http"
 	"github.com/spf13/cobra"
 )
 
@@ -21,17 +22,22 @@ func GetStartCmd(ctx *context.ServerContext) *cobra.Command {
 func GetStartRunFn(ctx *context.ServerContext) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 
-		e, err := http.CreateServerHTTP(ctx, acme.GetHTTPProvider(ctx))
-		if err != nil {
-			return err
+		e := appSrvHttp.CreateServerHTTP(ctx, acme.GetHTTPProvider(ctx))
+
+		httpConfig := ctx.Config.HTTP
+		go appHttp.StartServerHTTP(e, httpConfig.Listen, nil)
+
+		if httpConfig.TLS.Enable {
+			tlsConfig := appHttp.CreateTLSConfig(httpConfig.TLS)
+			go appHttp.StartServerHTTP(e, httpConfig.TLS.Listen, tlsConfig)
 		}
 
 		mgr, _ := manager.CreateManager(ctx)
 
 		go func() {
-			err = mgr.Start(ctx)
-			if err != nil {
-				panic(err)
+			errStart := mgr.Start(ctx)
+			if errStart != nil {
+				panic(errStart)
 			}
 		}()
 

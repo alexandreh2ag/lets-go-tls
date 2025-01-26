@@ -5,6 +5,7 @@ http:
     cert_path: ""
     enable: false
     key_path: ""
+    listen: ""
 interval: 5m0s
 manager:
   address: 127.0.0.1:8080
