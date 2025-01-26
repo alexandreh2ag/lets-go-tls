@@ -4,8 +4,9 @@ import (
 	stdContext "context"
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
-	"github.com/alexandreh2ag/lets-go-tls/apps/agent/http"
+	appAgentHttp "github.com/alexandreh2ag/lets-go-tls/apps/agent/http"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/service"
+	appHttp "github.com/alexandreh2ag/lets-go-tls/http"
 	"github.com/spf13/cobra"
 )
 
@@ -20,16 +21,21 @@ func GetStartCmd(ctx *context.AgentContext) *cobra.Command {
 func GetStartRunFn(ctx *context.AgentContext) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 
-		e, err := http.CreateServerHTTP(ctx)
-		if err != nil {
-			return err
+		e := appAgentHttp.CreateServerHTTP(ctx)
+
+		httpConfig := ctx.Config.HTTP
+		go appHttp.StartServerHTTP(e, httpConfig.Listen, nil)
+
+		if httpConfig.TLS.Enable {
+			tlsConfig := appHttp.CreateTLSConfig(httpConfig.TLS)
+			go appHttp.StartServerHTTP(e, httpConfig.TLS.Listen, tlsConfig)
 		}
 
 		srv := service.NewService(ctx)
 		go func() {
-			err = srv.Start(ctx)
-			if err != nil {
-				panic(err)
+			errStart := srv.Start(ctx)
+			if errStart != nil {
+				panic(errStart)
 			}
 		}()
 

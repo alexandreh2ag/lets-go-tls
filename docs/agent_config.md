@@ -5,10 +5,11 @@
 ```yaml
 interval: 5m0s # duration each process to fetch certificates. default: 5m
 http:
-    listen: 0.0.0.0:8080 # server listen address. default: 0.0.0.0:8080
+    listen: 0.0.0.0:8080 # http server listen address. default: 0.0.0.0:8080
     metrics_enable: false # enable metrics on path `/metrics`. default: false
     tls:
         enable: false
+        listen: 0.0.0.0:443 # https server listen address.
         cert_path: "/ssl/certificate.crt" # mandatory only when enable is true
         key_path: "/ssl/private.key" # mandatory only when enable is true
 manager:

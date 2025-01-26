@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func TestDefaultContext(t *testing.T) {
+func TestDefaultContext_Success(t *testing.T) {
 
 	level := &slog.LevelVar{}
 	level.Set(slog.LevelInfo)
@@ -36,6 +36,15 @@ func TestDefaultContext(t *testing.T) {
 	got.done = nil
 	got.sigs = nil
 	assert.Equal(t, want, got)
+}
+
+func TestDefaultContext_FailGetwd(t *testing.T) {
+	dir, _ := os.MkdirTemp("", "")
+	_ = os.Chdir(dir)
+	_ = os.RemoveAll(dir)
+	assert.Panics(t, func() {
+		DefaultContext()
+	})
 }
 
 func TestTestContext(t *testing.T) {

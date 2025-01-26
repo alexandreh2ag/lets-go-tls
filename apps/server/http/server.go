@@ -10,14 +10,13 @@ import (
 	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	buildinHttp "net/http"
 )
 
 const (
 	AcmeEndpoint = "/.well-known/acme-challenge"
 )
 
-func CreateServerHTTP(ctx *context.ServerContext, httpProvider *acmeHttp.ChallengeHTTP) (*echo.Echo, error) {
+func CreateServerHTTP(ctx *context.ServerContext, httpProvider *acmeHttp.ChallengeHTTP) *echo.Echo {
 	e := http.CreateEcho()
 
 	if ctx.Config.HTTP.MetricsEnable {
@@ -41,17 +40,5 @@ func CreateServerHTTP(ctx *context.ServerContext, httpProvider *acmeHttp.Challen
 	))
 	authorizedGroup.POST(http.GetApiPrefix(http.ServerApiGetCertificates), controller.GetCertificatesFromRequests)
 
-	go func() {
-		var err error
-		if ctx.Config.HTTP.TLS.Enable {
-			err = e.StartTLS(ctx.Config.HTTP.Listen, ctx.Config.HTTP.TLS.CertPath, ctx.Config.HTTP.TLS.KeyPath)
-		} else {
-			err = e.Start(ctx.Config.HTTP.Listen)
-		}
-		if err != nil && err != buildinHttp.ErrServerClosed {
-			panic(fmt.Errorf("fail to start http server with %v", err))
-		}
-	}()
-
-	return e, nil
+	return e
 }
