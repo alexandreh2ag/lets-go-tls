@@ -147,13 +147,17 @@ func (cm *CertifierManager) Run(ctx *appCtx.ServerContext) error {
 		for _, errObtainCert := range errObtainCerts.WrappedErrors() {
 			ctx.Logger.Error(errObtainCert.Error())
 		}
-		return fmt.Errorf("failed to obtain certificates")
+		ctx.Logger.Error("failed to obtain certificates")
 	} else {
 		ctx.MetricsRegister.MustGetGauge(obtainCertErrorMetric).Set(0)
 	}
 
+	// remove UnusedAt when a certificate is reuse again
 	// remove unused certificates when retention expired or mark for retention and only if errFetch is nil
 	if len(errFetch) == 0 {
+		ctx.Logger.Info(fmt.Sprintf("clean unused flag when certificates have been reuse agin"))
+		cm.MarkCertificatesAsReused(state.Certificates, domainsRequests)
+
 		ctx.Logger.Info(fmt.Sprintf("clean up unused certificates"))
 		state.Certificates = cm.CleanUnusedCertificates(ctx, state.Certificates, domainsRequests)
 	}
@@ -176,6 +180,12 @@ func (cm *CertifierManager) CleanUnusedCertificates(ctx *appCtx.ServerContext, c
 		}
 	}
 	return certificates.Deletes(toDeleteCertificates)
+}
+
+func (cm *CertifierManager) MarkCertificatesAsReused(certificates types.Certificates, domainsRequests []*types.DomainRequest) {
+	for _, certificate := range certificates.UsedCertificates(domainsRequests) {
+		certificate.UnusedAt = time.Time{}
+	}
 }
 
 func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state *types.State) *multierror.Error {
@@ -201,7 +211,7 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 
 		if !certificate.ObtainFailDate.IsZero() && certificate.ObtainFailCount >= cfgAcme.MaxAttempt &&
 			cm.clock.Now().Before(certificate.ObtainFailDate.Add(cfgAcme.DelayFailed)) {
-			ctx.Logger.Debug(fmt.Sprintf("skip certificate %s due to max obtain fail reach", certificate.Identifier))
+			ctx.Logger.Warn(fmt.Sprintf("skip certificate %s due to max obtain fail reach", certificate.Identifier))
 			continue
 		}
 
@@ -293,6 +303,7 @@ func (cm *CertifierManager) MatchingRequests(ctx *appCtx.ServerContext, state *t
 				cert.Identifier = fmt.Sprintf("%s-%v", baseIdentifier, i)
 				i++
 			}
+			ctx.Logger.Info(fmt.Sprintf("create new certificate %s (%v)", cert.Identifier, cert.Domains))
 			state.Certificates = append(state.Certificates, cert)
 			cm.registerNewCertificateMetrics(ctx, cert)
 		}

@@ -295,6 +295,19 @@ func TestCertifierManager_MatchingRequests(t *testing.T) {
 
 			wantErr: assert.NoError,
 		},
+		{
+			name:  "SuccessNewCertWithMultipleSameRequest",
+			state: &types.State{Certificates: types.Certificates{}},
+			wantFunc: func() types.Certificates {
+				return types.Certificates{cert1}
+			},
+			domainsRequests: []*types.DomainRequest{
+				{Requester: r, Domains: types.Domains{types.Domain("example.com")}},
+				{Requester: r, Domains: types.Domains{types.Domain("example.com")}},
+			},
+
+			wantErr: assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -764,6 +777,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 	account, _ := acme.NewAccount("foo@bar.com")
 	account.Registration = &registration.Resource{}
 	storage.EXPECT().Load().Times(1).Return(&types.State{Account: account, Certificates: types.Certificates{{Identifier: "foo"}}}, nil)
+	storage.EXPECT().Save(gomock.Any()).AnyTimes().Return(nil)
 
 	ctx.MetricsRegister = appProm.NewRegistry(types.NameServerMetrics, prometheus.NewRegistry())
 	fakeClock := clockwork.NewFakeClockAt(time.Date(1970, time.January, 1, 0, 0, 59, 0, time.UTC))
@@ -775,7 +789,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 		clock:        fakeClock,
 	}
 	err := cm.Run(ctx)
-	assert.Error(t, err)
+	assert.Nil(t, err)
 }
 
 func TestCertifierManager_Start(t *testing.T) {
@@ -986,5 +1000,45 @@ func TestCertifierManager_CleanUnusedCertificates(t *testing.T) {
 			}
 			assert.Equalf(t, tt.want, cm.CleanUnusedCertificates(ctx, tt.certificates, tt.domainsRequests), "CleanUnusedCertificates(%v, %v, %v)", ctx, tt.certificates, tt.domainsRequests)
 		})
+	}
+}
+
+func TestCertifierManager_MarkCertificatesAsReused(t *testing.T) {
+
+	tests := []struct {
+		name            string
+		certificates    types.Certificates
+		domainsRequests []*types.DomainRequest
+	}{
+		{
+			name:            "SuccessNoting",
+			certificates:    types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: time.Time{}}},
+			domainsRequests: []*types.DomainRequest{{Domains: types.Domains{"example.com"}}},
+		},
+		{
+			name:            "SuccessReusedCertificate",
+			certificates:    types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: time.Now()}},
+			domainsRequests: []*types.DomainRequest{{Domains: types.Domains{"example.com"}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &CertifierManager{}
+			cm.MarkCertificatesAsReused(tt.certificates, tt.domainsRequests)
+			for _, c := range tt.certificates {
+				assert.Equal(t, time.Time{}, c.UnusedAt)
+			}
+		})
+	}
+}
+
+func TestCertifierManager_MarkCertificatesAsReused_StillNotUsed(t *testing.T) {
+	now := time.Now()
+	certificates := types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: now}}
+	domainsRequests := []*types.DomainRequest{}
+	cm := &CertifierManager{}
+	cm.MarkCertificatesAsReused(certificates, domainsRequests)
+	for _, c := range certificates {
+		assert.Equal(t, now, c.UnusedAt)
 	}
 }

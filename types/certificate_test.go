@@ -251,6 +251,39 @@ func TestCertificate_IsValid(t *testing.T) {
 	}
 }
 
+func TestCertificates_UsedCertificates(t *testing.T) {
+	cert1 := &Certificate{Domains: Domains{Domain("example.com")}}
+	cert2 := &Certificate{Domains: Domains{Domain("example2.com")}}
+	certificates := Certificates{cert1, cert2}
+
+	tests := []struct {
+		name            string
+		domainsRequests []*DomainRequest
+		want            Certificates
+	}{
+		{
+			name: "SuccessAllUsed",
+			domainsRequests: []*DomainRequest{
+				{Domains: Domains{Domain("example.com")}},
+				{Domains: Domains{Domain("example2.com")}},
+			},
+			want: Certificates{cert1, cert2},
+		},
+		{
+			name: "SuccessOneNotUsed",
+			domainsRequests: []*DomainRequest{
+				{Domains: Domains{Domain("example.com")}},
+			},
+			want: Certificates{cert1},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, certificates.UsedCertificates(tt.domainsRequests), "UsedCertificates(%v)", tt.domainsRequests)
+		})
+	}
+}
+
 func TestCertificates_UnusedCertificates(t *testing.T) {
 	cert1 := &Certificate{Domains: Domains{Domain("example.com")}}
 	cert2 := &Certificate{Domains: Domains{Domain("example2.com")}}
