@@ -40,6 +40,19 @@ func (c Certificates) GetCertificate(identifier string) *Certificate {
 	return nil
 }
 
+func (c Certificates) UsedCertificates(domainsRequests []*DomainRequest) Certificates {
+	usedCertificates := Certificates{}
+	for _, cert := range c {
+		for _, request := range domainsRequests {
+			if cert.Match(request.Domains) {
+				usedCertificates = append(usedCertificates, cert)
+				break
+			}
+		}
+	}
+	return usedCertificates
+}
+
 func (c Certificates) UnusedCertificates(domainsRequests []*DomainRequest) Certificates {
 	unusedCertificates := Certificates{}
 	for _, cert := range c {

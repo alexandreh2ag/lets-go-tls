@@ -988,3 +988,43 @@ func TestCertifierManager_CleanUnusedCertificates(t *testing.T) {
 		})
 	}
 }
+
+func TestCertifierManager_MarkCertificatesAsReused(t *testing.T) {
+
+	tests := []struct {
+		name            string
+		certificates    types.Certificates
+		domainsRequests []*types.DomainRequest
+	}{
+		{
+			name:            "SuccessNoting",
+			certificates:    types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: time.Time{}}},
+			domainsRequests: []*types.DomainRequest{{Domains: types.Domains{"example.com"}}},
+		},
+		{
+			name:            "SuccessReusedCertificate",
+			certificates:    types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: time.Now()}},
+			domainsRequests: []*types.DomainRequest{{Domains: types.Domains{"example.com"}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &CertifierManager{}
+			cm.MarkCertificatesAsReused(tt.certificates, tt.domainsRequests)
+			for _, c := range tt.certificates {
+				assert.Equal(t, time.Time{}, c.UnusedAt)
+			}
+		})
+	}
+}
+
+func TestCertifierManager_MarkCertificatesAsReused_StillNotUsed(t *testing.T) {
+	now := time.Now()
+	certificates := types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, UnusedAt: now}}
+	domainsRequests := []*types.DomainRequest{}
+	cm := &CertifierManager{}
+	cm.MarkCertificatesAsReused(certificates, domainsRequests)
+	for _, c := range certificates {
+		assert.Equal(t, now, c.UnusedAt)
+	}
+}
