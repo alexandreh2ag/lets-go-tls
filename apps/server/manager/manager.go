@@ -152,8 +152,12 @@ func (cm *CertifierManager) Run(ctx *appCtx.ServerContext) error {
 		ctx.MetricsRegister.MustGetGauge(obtainCertErrorMetric).Set(0)
 	}
 
+	// remove UnusedAt when a certificate is reuse again
 	// remove unused certificates when retention expired or mark for retention and only if errFetch is nil
 	if len(errFetch) == 0 {
+		ctx.Logger.Info(fmt.Sprintf("clean unused flag when certificates have been reuse agin"))
+		cm.MarkCertificatesAsReused(state.Certificates, domainsRequests)
+
 		ctx.Logger.Info(fmt.Sprintf("clean up unused certificates"))
 		state.Certificates = cm.CleanUnusedCertificates(ctx, state.Certificates, domainsRequests)
 	}
@@ -176,6 +180,12 @@ func (cm *CertifierManager) CleanUnusedCertificates(ctx *appCtx.ServerContext, c
 		}
 	}
 	return certificates.Deletes(toDeleteCertificates)
+}
+
+func (cm *CertifierManager) MarkCertificatesAsReused(certificates types.Certificates, domainsRequests []*types.DomainRequest) {
+	for _, certificate := range certificates.UsedCertificates(domainsRequests) {
+		certificate.UnusedAt = time.Time{}
+	}
 }
 
 func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state *types.State) *multierror.Error {
