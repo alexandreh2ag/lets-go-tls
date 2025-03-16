@@ -79,8 +79,10 @@ func (sr *stdRegistry) MustGetGauge(name string) prometheus.Gauge {
 }
 
 func (sr *stdRegistry) MustAddGaugeCertificate(name string, metric prometheus.Gauge) {
-	sr.certificatesMetrics[name] = metric
-	sr.MustRegister(metric)
+	if _, ok := sr.certificatesMetrics[name]; !ok {
+		sr.certificatesMetrics[name] = metric
+		sr.MustRegister(metric)
+	}
 }
 
 func (sr *stdRegistry) MustDeleteGaugeCertificate(name string) {

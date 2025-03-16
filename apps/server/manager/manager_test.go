@@ -295,6 +295,19 @@ func TestCertifierManager_MatchingRequests(t *testing.T) {
 
 			wantErr: assert.NoError,
 		},
+		{
+			name:  "SuccessNewCertWithMultipleSameRequest",
+			state: &types.State{Certificates: types.Certificates{}},
+			wantFunc: func() types.Certificates {
+				return types.Certificates{cert1}
+			},
+			domainsRequests: []*types.DomainRequest{
+				{Requester: r, Domains: types.Domains{types.Domain("example.com")}},
+				{Requester: r, Domains: types.Domains{types.Domain("example.com")}},
+			},
+
+			wantErr: assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -764,6 +777,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 	account, _ := acme.NewAccount("foo@bar.com")
 	account.Registration = &registration.Resource{}
 	storage.EXPECT().Load().Times(1).Return(&types.State{Account: account, Certificates: types.Certificates{{Identifier: "foo"}}}, nil)
+	storage.EXPECT().Save(gomock.Any()).AnyTimes().Return(nil)
 
 	ctx.MetricsRegister = appProm.NewRegistry(types.NameServerMetrics, prometheus.NewRegistry())
 	fakeClock := clockwork.NewFakeClockAt(time.Date(1970, time.January, 1, 0, 0, 59, 0, time.UTC))
@@ -775,7 +789,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 		clock:        fakeClock,
 	}
 	err := cm.Run(ctx)
-	assert.Error(t, err)
+	assert.Nil(t, err)
 }
 
 func TestCertifierManager_Start(t *testing.T) {

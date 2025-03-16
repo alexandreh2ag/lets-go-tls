@@ -60,7 +60,7 @@ func Test_stdRegistry_MustAddGauge(t *testing.T) {
 	assert.Len(t, sr.gaugeMetrics, 1)
 }
 
-func Test_stdRegistry_MustAddGaugeCertificate(t *testing.T) {
+func Test_stdRegistry_MustAddGaugeCertificate_NotExist(t *testing.T) {
 	name := "foo"
 	registryProm := prometheus.NewRegistry()
 	sr := &stdRegistry{
@@ -74,6 +74,25 @@ func Test_stdRegistry_MustAddGaugeCertificate(t *testing.T) {
 		Help: "Foo",
 	})
 
+	sr.MustAddGaugeCertificate(name, metric)
+	assert.Len(t, sr.certificatesMetrics, 1)
+}
+
+func Test_stdRegistry_MustAddGaugeCertificate_Exist(t *testing.T) {
+	name := "foo"
+	registryProm := prometheus.NewRegistry()
+	sr := &stdRegistry{
+		Registry:            registryProm,
+		namespace:           "",
+		certificatesMetrics: map[string]prometheus.Gauge{},
+	}
+
+	metric := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "foo",
+		Help: "Foo",
+	})
+
+	sr.MustAddGaugeCertificate(name, metric)
 	sr.MustAddGaugeCertificate(name, metric)
 	assert.Len(t, sr.certificatesMetrics, 1)
 }
