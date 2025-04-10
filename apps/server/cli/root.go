@@ -38,6 +38,7 @@ func GetRootCmd(ctx *appCtx.ServerContext) *cobra.Command {
 
 	cmd.AddCommand(
 		GetStartCmd(ctx),
+		GetMigrateCmd(ctx),
 		GetVersionCmd(),
 	)
 

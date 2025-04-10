@@ -1,6 +1,8 @@
 package types
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"slices"
 	"time"
@@ -127,4 +129,12 @@ func GetKeyFilename(identifier string) string {
 
 func GetCertificateFilename(identifier string) string {
 	return fmt.Sprintf("%s.%s", identifier, "crt")
+}
+
+func GetX509Certificate(cert []byte) (*x509.Certificate, error) {
+	certBlock, _ := pem.Decode(cert)
+	if certBlock == nil {
+		return nil, fmt.Errorf("failed to decode cert")
+	}
+	return x509.ParseCertificate(certBlock.Bytes)
 }

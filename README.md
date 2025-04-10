@@ -127,6 +127,20 @@ go build -o dist/lets-go-tls_agent apps/agent/main.go
 go test ./...
 ```
 
+## Migrate
+
+### Certbot
+
+```bash
+lets-go-tls_server migrate --type certbot --path /etc/letsencrypt --output /tmp/server_state.json
+```
+
+### Traefik
+
+```bash
+lets-go-tls_server migrate --type traefik --path /etc/traefik/acme.json --output /tmp/server_state.json
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request with any enhancements, bug fixes, or ideas.
