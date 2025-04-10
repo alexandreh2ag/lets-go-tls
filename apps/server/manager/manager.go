@@ -223,7 +223,7 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 			}
 			ctx.Logger.Info(fmt.Sprintf("obtain certificate %s (%v)", certificate.Identifier, certificate.Domains.ToStringSlice()))
 			certAcme, err = resolver.Obtain(request)
-		} else if certificate.ExpirationDate.Before(time.Now().Add(cfgAcme.RenewPeriod * -1)) {
+		} else if time.Now().Add(cfgAcme.RenewPeriod).After(certificate.ExpirationDate) {
 			certRes := legoCertificate.Resource{
 				Domain:      string(certificate.Domains[0]),
 				PrivateKey:  certificate.Key,

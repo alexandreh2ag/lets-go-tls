@@ -349,7 +349,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			name: "SuccessNothing",
 			state: &types.State{
 				Certificates: types.Certificates{
-					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(time.Hour)},
+					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(time.Hour * 2)},
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
@@ -385,7 +385,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			name: "SuccessRenewCertificate",
 			state: &types.State{
 				Certificates: types.Certificates{
-					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(time.Hour * -2)},
+					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(ctx.Config.Acme.RenewPeriod / 2)},
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
@@ -440,7 +440,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			name: "SuccessNoRenewCertificate",
 			state: &types.State{
 				Certificates: types.Certificates{
-					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(time.Minute * -30)},
+					{Identifier: "foo", Main: "example.com", Domains: types.Domains{types.Domain("example.com")}, Certificate: []byte("cert"), Key: []byte("key"), ExpirationDate: time.Now().Add(time.Minute * 90)},
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
