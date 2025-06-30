@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -335,4 +336,52 @@ func TestGetCertificateFilename(t *testing.T) {
 func TestGetKeyFilename(t *testing.T) {
 	identifier := "foo"
 	assert.Equal(t, "foo.key", GetKeyFilename(identifier))
+}
+
+func TestGetX509Certificate(t *testing.T) {
+	certPEM := []byte(`
+-----BEGIN CERTIFICATE-----
+MIIB1zCCAUCgAwIBAgIBATANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQKEwtFeGVt
+cGxlIE9yZzAeFw0yNTA2MjIxMTU1MDFaFw0yNjA2MjIxMTU1MDFaMBYxFDASBgNV
+BAoTC0V4ZW1wbGUgT3JnMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+xqcl
+8nmNTvPEiWpdJyWpsJSr8DTb6xPFnb1+I+ACzFS6Qyv7pT8RSTPuy/2DC4cSeqsV
+HiaBSNxQxoWODwgE41/dVx0p0G8US2Ds7M5TCGm3zHnz5oABagjcaI2ZT8YEveNL
+5w0Xstj6RmoytkGhEosDV04CZyhDWwzQB7+dkwIDAQABozUwMzAOBgNVHQ8BAf8E
+BAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADANBgkqhkiG
+9w0BAQsFAAOBgQBnOYaKCp3VfgZD925AydTQ5PuUeo4LK5pE8AKLfOrgHvTzui1/
+34zByxGjWHv7p4rX2txg9EpN5BuAIvddIn3eMb802+FqjznbGVaMQ1iaftGlJnir
+B0JJs8CQfk8HQCPK5pdaZrsc+1cWqPDuUSpuDTi06NGbPD7xYGIwcKoEAg==
+-----END CERTIFICATE-----
+`)
+	tests := []struct {
+		name            string
+		cert            []byte
+		wantRawNotEmpty bool
+		wantErr         assert.ErrorAssertionFunc
+	}{
+		{
+			name:            "Success",
+			cert:            certPEM,
+			wantRawNotEmpty: true,
+			wantErr:         assert.NoError,
+		},
+		{
+			name:            "FailParsePem",
+			cert:            []byte("wrong"),
+			wantRawNotEmpty: false,
+			wantErr:         assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetX509Certificate(tt.cert)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetX509Certificate(%v)", tt.cert)) {
+				return
+			}
+
+			if tt.wantRawNotEmpty {
+				assert.NotEmpty(t, got.Raw)
+			}
+		})
+	}
 }
