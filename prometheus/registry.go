@@ -5,6 +5,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"strings"
+	"sync"
 )
 
 type Registry interface {
@@ -26,6 +27,9 @@ type Registry interface {
 	MustAddCounter(name string, metric prometheus.Counter)
 	MustDeleteCounter(name string)
 	MustGetCounter(name string) prometheus.Counter
+
+	RegisterNewCertificateMetrics(certificate *types.Certificate)
+	UpdateCertificatesMetrics(certificates types.Certificates)
 }
 
 type stdRegistry struct {
@@ -35,6 +39,8 @@ type stdRegistry struct {
 	gaugeMetrics        map[string]prometheus.Gauge
 	certificatesMetrics map[string]prometheus.Gauge
 	counterMetrics      map[string]prometheus.Counter
+
+	mutexMetrics sync.Mutex
 }
 
 func NewRegistry(namespace string, registryProm *prometheus.Registry) Registry {
@@ -143,4 +149,23 @@ func (sr *stdRegistry) MustGetCounter(name string) prometheus.Counter {
 	})
 	sr.MustAddCounter(name, metric)
 	return metric
+}
+
+func (sr *stdRegistry) RegisterNewCertificateMetrics(certificate *types.Certificate) {
+	gauge := sr.CreateGaugeCertificate(certificate)
+	gauge.Set(float64(certificate.ExpirationDate.Unix()))
+	sr.MustAddGaugeCertificate(certificate.Identifier, gauge)
+}
+
+func (sr *stdRegistry) UpdateCertificatesMetrics(certificates types.Certificates) {
+	sr.mutexMetrics.Lock()
+	// clean metrics for deleted certificate
+	for certIdentifier, gauge := range sr.GetGaugeCertificates() {
+		if certificate := certificates.GetCertificate(certIdentifier); certificate != nil {
+			gauge.Set(float64(certificate.ExpirationDate.Unix()))
+		} else {
+			sr.MustDeleteGaugeCertificate(certIdentifier)
+		}
+	}
+	sr.mutexMetrics.Unlock()
 }

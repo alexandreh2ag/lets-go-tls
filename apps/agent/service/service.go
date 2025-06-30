@@ -126,16 +126,17 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 			as.logger.Warn(fmt.Sprintf("some domains requests not found (%d)", len(managerResponse.Requests.NotFound)))
 		}
 
-		for _, certManager := range managerResponse.Certificates {
-			certificateState := state.Certificates.GetCertificate(certManager.Identifier)
+		for _, responseManagerCert := range managerResponse.Certificates {
+			certificateState := state.Certificates.GetCertificate(responseManagerCert.Identifier)
 			if certificateState != nil {
-				certificateState.Main = certManager.Main
-				certificateState.Domains = certManager.Domains
-				certificateState.Key = certManager.Key
-				certificateState.Certificate = certManager.Certificate
-				certificateState.ExpirationDate = certManager.ExpirationDate
+				certificateState.Main = responseManagerCert.Main
+				certificateState.Domains = responseManagerCert.Domains
+				certificateState.Key = responseManagerCert.Key
+				certificateState.Certificate = responseManagerCert.Certificate
+				certificateState.ExpirationDate = responseManagerCert.ExpirationDate
 			} else {
-				state.Certificates = append(state.Certificates, certManager)
+				state.Certificates = append(state.Certificates, responseManagerCert)
+				ctx.GetMetricsRegister().RegisterNewCertificateMetrics(responseManagerCert)
 			}
 		}
 	}
@@ -172,6 +173,8 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 	}
 
 	as.hookManager.RunHooks()
+
+	ctx.GetMetricsRegister().UpdateCertificatesMetrics(state.Certificates)
 
 	ctx.Logger.Debug("save state")
 	return as.stateStorage.Save(state)

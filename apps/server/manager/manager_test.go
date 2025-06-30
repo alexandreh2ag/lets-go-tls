@@ -24,7 +24,6 @@ import (
 	"go.uber.org/mock/gomock"
 	"log/slog"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -856,76 +855,15 @@ func TestCertifierManager_StartFailFirstTick(t *testing.T) {
 	assert.Contains(t, b.String(), "failed to load state")
 }
 
-func TestCertifierManager_updateMetrics(t *testing.T) {
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	cert1 := &types.Certificate{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}}
-	gauge1 := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: fmt.Sprintf("%s_tls_certs_not_after", types.NameServerMetrics),
-		Help: "Certificate expiration timestamp",
-		ConstLabels: map[string]string{
-			"identifier": cert1.Identifier,
-			"cn":         cert1.Main,
-			"sans":       strings.Join(cert1.Domains.ToStringSlice(), ","),
-		},
-	})
-
-	gauge2 := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: fmt.Sprintf("%s_tls_certs_not_after", types.NameServerMetrics),
-		Help: "Certificate expiration timestamp",
-		ConstLabels: map[string]string{
-			"identifier": "bar",
-			"cn":         cert1.Main,
-			"sans":       strings.Join(cert1.Domains.ToStringSlice(), ","),
-		},
-	})
-
-	tests := []struct {
-		name         string
-		certificates types.Certificates
-		fnMock       func(registry *mockPrometheus.MockRegistry)
-	}{
-		{
-			name:         "SuccessExistingMetrics",
-			certificates: types.Certificates{cert1},
-			fnMock: func(metricsRegistry *mockPrometheus.MockRegistry) {
-				metricsRegistry.EXPECT().GetGaugeCertificates().Times(1).Return(map[string]prometheus.Gauge{cert1.Identifier: gauge1})
-			},
-		},
-		{
-			name:         "SuccessRemoveOldMetric",
-			certificates: types.Certificates{cert1},
-			fnMock: func(metricsRegistry *mockPrometheus.MockRegistry) {
-				metricsRegistry.EXPECT().GetGaugeCertificates().Times(1).Return(map[string]prometheus.Gauge{cert1.Identifier: gauge1, "bar": gauge2})
-				metricsRegistry.EXPECT().MustDeleteGaugeCertificate(gomock.Any()).Times(1)
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			metricsRegistry := mockPrometheus.NewMockRegistry(ctrl)
-			tt.fnMock(metricsRegistry)
-			ctx := appCtx.TestContext(nil)
-			ctx.MetricsRegister = metricsRegistry
-			cm := &CertifierManager{}
-			cm.updateMetrics(ctx, &types.State{Certificates: tt.certificates})
-		})
-	}
-}
-
 func TestCertifierManager_initMetrics_Success(t *testing.T) {
 	ctx := appCtx.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	registry := appProm.NewRegistry(types.NameServerMetrics, prometheus.NewRegistry())
 	cert1 := &types.Certificate{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}}
 	metricsRegistry := mockPrometheus.NewMockRegistry(ctrl)
 
 	gomock.InOrder(
-		metricsRegistry.EXPECT().CreateGaugeCertificate(gomock.Any()).Times(1).Return(registry.CreateGaugeCertificate(cert1)),
-		metricsRegistry.EXPECT().MustAddGaugeCertificate(gomock.Eq(cert1.Identifier), gomock.Any()).Times(1),
+		metricsRegistry.EXPECT().RegisterNewCertificateMetrics(gomock.Any()).Times(1),
 		metricsRegistry.EXPECT().FormatName(gomock.Any()).Times(1).Return(runCountMetric),
 		metricsRegistry.EXPECT().MustAddCounter(gomock.Any(), gomock.Any()).Times(1),
 
@@ -945,19 +883,6 @@ func TestCertifierManager_initMetrics_SuccessAlreadyInit(t *testing.T) {
 	ctx := appCtx.TestContext(nil)
 	cm := &CertifierManager{metricsInit: true}
 	cm.initMetrics(ctx, &types.State{})
-}
-
-func TestCertifierManager_registerNewCertificateMetrics(t *testing.T) {
-	ctx := appCtx.TestContext(nil)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	metricsRegistry := mockPrometheus.NewMockRegistry(ctrl)
-	metricsRegistry.EXPECT().CreateGaugeCertificate(gomock.Any()).Times(1).Return(prometheus.NewGauge(prometheus.GaugeOpts{}))
-	metricsRegistry.EXPECT().MustAddGaugeCertificate(gomock.Any(), gomock.Any()).Times(1)
-	ctx.MetricsRegister = metricsRegistry
-	cert := &types.Certificate{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}}
-	cm := &CertifierManager{}
-	cm.registerNewCertificateMetrics(ctx, cert)
 }
 
 func TestCertifierManager_CleanUnusedCertificates(t *testing.T) {
