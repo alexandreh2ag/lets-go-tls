@@ -213,6 +213,100 @@ func TestAgentService_Run_SuccessWithErrorGetRequestManager(t *testing.T) {
 	assert.Contains(t, err.Error(), "error get request manager")
 }
 
+func TestAgentService_Run_SuccessStorageSaveError(t *testing.T) {
+	ctx := appCtx.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx.MetricsRegister = appProm.NewRegistry(types.NameAgentMetrics, prometheus.NewRegistry())
+	state := &types.State{Account: nil, Certificates: types.Certificates{certificateBar}}
+	storageState := mockTypesStorageState.NewMockStorage(ctrl)
+	storageState.EXPECT().Load().Times(1).Return(state, nil)
+	storageState.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
+
+	requester := mockTypes.NewMockRequester(ctrl)
+	requester.EXPECT().Fetch().Times(1).Return([]*types.DomainRequest{domainRequestFoo, domainRequestBar, domainRequestNoFound}, nil)
+	ctx.Requesters = types.Requesters{"foo": requester}
+
+	clientHttp := mockHttp.NewMockClient(ctrl)
+	resp := fasthttp.Response{}
+	resp.SetStatusCode(http.StatusOK)
+	responseCertificate := appHttp.ResponseCertificatesFromRequests{
+		Certificates: types.Certificates{certificateFoo, certificateBar},
+		Requests: appHttp.ResponseRequests{
+			Found:    []*types.DomainRequest{domainRequestFoo, domainRequestBar},
+			NotFound: []*types.DomainRequest{domainRequestNoFound},
+		},
+	}
+	body, _ := json.Marshal(responseCertificate)
+	resp.SetBody(body)
+	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+
+	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return([]error{errors.New("error")})
+	storage.EXPECT().ID().Times(1).Return("foo")
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+
+	as := &AgentService{
+		logger:       ctx.Logger,
+		stateStorage: storageState,
+		httpClient:   clientHttp,
+		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
+	}
+	go as.hookManager.Start()
+
+	err := as.Run(ctx)
+	assert.NoError(t, err)
+}
+
+func TestAgentService_Run_SuccessStorageDeleteError(t *testing.T) {
+	ctx := appCtx.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx.MetricsRegister = appProm.NewRegistry(types.NameAgentMetrics, prometheus.NewRegistry())
+	state := &types.State{Account: nil, Certificates: types.Certificates{certificateBar}}
+	storageState := mockTypesStorageState.NewMockStorage(ctrl)
+	storageState.EXPECT().Load().Times(1).Return(state, nil)
+	storageState.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
+
+	requester := mockTypes.NewMockRequester(ctrl)
+	requester.EXPECT().Fetch().Times(1).Return([]*types.DomainRequest{domainRequestFoo, domainRequestBar, domainRequestNoFound}, nil)
+	ctx.Requesters = types.Requesters{"foo": requester}
+
+	clientHttp := mockHttp.NewMockClient(ctrl)
+	resp := fasthttp.Response{}
+	resp.SetStatusCode(http.StatusOK)
+	responseCertificate := appHttp.ResponseCertificatesFromRequests{
+		Certificates: types.Certificates{certificateFoo, certificateBar},
+		Requests: appHttp.ResponseRequests{
+			Found:    []*types.DomainRequest{domainRequestFoo, domainRequestBar},
+			NotFound: []*types.DomainRequest{domainRequestNoFound},
+		},
+	}
+	body, _ := json.Marshal(responseCertificate)
+	resp.SetBody(body)
+	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+
+	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).Return([]error{errors.New("error")})
+	storage.EXPECT().ID().Times(1).Return("foo")
+
+	as := &AgentService{
+		logger:       ctx.Logger,
+		stateStorage: storageState,
+		httpClient:   clientHttp,
+		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
+	}
+	go as.hookManager.Start()
+
+	err := as.Run(ctx)
+	assert.NoError(t, err)
+}
+
 func TestAgentService_Start_Success(t *testing.T) {
 	b := bytes.NewBufferString("")
 	ctx := appCtx.TestContext(b)

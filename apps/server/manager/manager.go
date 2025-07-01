@@ -42,8 +42,7 @@ type CertifierManager struct {
 
 	clock clockwork.Clock
 
-	metricsInit  bool
-	mutexMetrics sync.Mutex
+	metricsInit bool
 }
 
 func NewManager(stateStorage typesStorageState.Storage) *CertifierManager {
@@ -162,7 +161,7 @@ func (cm *CertifierManager) Run(ctx *appCtx.ServerContext) error {
 		state.Certificates = cm.CleanUnusedCertificates(ctx, state.Certificates, domainsRequests)
 	}
 
-	cm.updateMetrics(ctx, state)
+	ctx.GetMetricsRegister().UpdateCertificatesMetrics(state.Certificates)
 
 	return cm.stateStorage.Save(state)
 }
@@ -305,7 +304,7 @@ func (cm *CertifierManager) MatchingRequests(ctx *appCtx.ServerContext, state *t
 			}
 			ctx.Logger.Info(fmt.Sprintf("create new certificate %s (%v)", cert.Identifier, cert.Domains))
 			state.Certificates = append(state.Certificates, cert)
-			cm.registerNewCertificateMetrics(ctx, cert)
+			ctx.GetMetricsRegister().RegisterNewCertificateMetrics(cert)
 		}
 
 	}
@@ -357,7 +356,7 @@ func (cm *CertifierManager) initMetrics(ctx *appCtx.ServerContext, state *types.
 
 	registry := ctx.MetricsRegister
 	for _, certificate := range state.Certificates {
-		cm.registerNewCertificateMetrics(ctx, certificate)
+		ctx.GetMetricsRegister().RegisterNewCertificateMetrics(certificate)
 	}
 
 	countRunMetrics := prometheus.NewCounter(prometheus.CounterOpts{
@@ -379,25 +378,4 @@ func (cm *CertifierManager) initMetrics(ctx *appCtx.ServerContext, state *types.
 	gaugeObtainCertErrorMetrics.Set(0)
 	ctx.MetricsRegister.MustAddGauge(obtainCertErrorMetric, gaugeObtainCertErrorMetrics)
 
-}
-
-func (cm *CertifierManager) updateMetrics(ctx *appCtx.ServerContext, state *types.State) {
-	registry := ctx.MetricsRegister
-	cm.mutexMetrics.Lock()
-	// clean metrics for deleted certificate
-	for certIdentifier, gauge := range registry.GetGaugeCertificates() {
-		if certificate := state.Certificates.GetCertificate(certIdentifier); certificate != nil {
-			gauge.Set(float64(certificate.ExpirationDate.Unix()))
-		} else {
-			registry.MustDeleteGaugeCertificate(certIdentifier)
-		}
-	}
-	cm.mutexMetrics.Unlock()
-
-}
-
-func (cm *CertifierManager) registerNewCertificateMetrics(ctx *appCtx.ServerContext, certificate *types.Certificate) {
-	gauge := ctx.MetricsRegister.CreateGaugeCertificate(certificate)
-	gauge.Set(float64(certificate.ExpirationDate.Unix()))
-	ctx.MetricsRegister.MustAddGaugeCertificate(certificate.Identifier, gauge)
 }

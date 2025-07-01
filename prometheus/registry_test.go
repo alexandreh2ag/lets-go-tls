@@ -3,9 +3,11 @@ package prometheus
 import (
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewRegistry(t *testing.T) {
@@ -296,4 +298,72 @@ func Test_stdRegistry_GetGaugeCertificates(t *testing.T) {
 
 	got := sr.GetGaugeCertificates()
 	assert.Equal(t, sr.certificatesMetrics, got)
+}
+
+func Test_stdRegistry_RegisterNewCertificateMetrics(t *testing.T) {
+	registryProm := prometheus.NewRegistry()
+	sr := &stdRegistry{
+		namespace:           "",
+		Registry:            registryProm,
+		certificatesMetrics: map[string]prometheus.Gauge{},
+	}
+	cert := &types.Certificate{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}}
+	sr.RegisterNewCertificateMetrics(cert)
+	assert.Len(t, sr.certificatesMetrics, 1)
+}
+
+func Test_stdRegistry_UpdateCertificatesMetrics(t *testing.T) {
+	gauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "tls_certs_not_after",
+		Help: "Certificate expiration timestamp",
+		ConstLabels: map[string]string{
+			"identifier": "foo",
+			"cn":         "example.com",
+			"sans":       "example.com",
+		},
+	})
+	certDate := time.Date(2035, time.April, 7, 00, 41, 15, 0, time.UTC)
+	tests := []struct {
+		name                string
+		certificates        types.Certificates
+		certificatesMetrics map[string]prometheus.Gauge
+		checkFn             func(t *testing.T, sr *stdRegistry)
+	}{
+		{
+			name: "SuccessEmptyCertificates",
+			checkFn: func(t *testing.T, sr *stdRegistry) {
+				assert.Len(t, sr.certificatesMetrics, 0)
+			},
+		},
+		{
+			name:                "SuccessUpdateCertificate",
+			certificatesMetrics: map[string]prometheus.Gauge{"foo": gauge},
+			certificates:        types.Certificates{{Identifier: "foo", Main: "example.com", Domains: types.Domains{"example.com"}, ExpirationDate: certDate}},
+			checkFn: func(t *testing.T, sr *stdRegistry) {
+				assert.Len(t, sr.certificatesMetrics, 1)
+				value := testutil.ToFloat64(sr.certificatesMetrics["foo"])
+				assert.Equal(t, float64(certDate.Unix()), value)
+			},
+		},
+		{
+			name:                "SuccessRemoveCertificate",
+			certificatesMetrics: map[string]prometheus.Gauge{"foo": gauge},
+			certificates:        types.Certificates{},
+			checkFn: func(t *testing.T, sr *stdRegistry) {
+				assert.Len(t, sr.certificatesMetrics, 0)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			registryProm := prometheus.NewRegistry()
+			sr := &stdRegistry{
+				namespace:           "",
+				Registry:            registryProm,
+				certificatesMetrics: tt.certificatesMetrics,
+			}
+			sr.UpdateCertificatesMetrics(tt.certificates)
+			tt.checkFn(t, sr)
+		})
+	}
 }
