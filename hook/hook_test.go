@@ -165,3 +165,37 @@ func TestManagerHook_Start(t *testing.T) {
 	hookChan <- h
 	assert.Equal(t, []*Hook{h}, m.hooks)
 }
+
+func TestManagerHook_deduplicate(t *testing.T) {
+
+	hook := &Hook{Cmd: "echo 1"}
+	hookDuplicate := &Hook{Cmd: "echo 1"}
+	hook2 := &Hook{Cmd: "echo 2"}
+	hook3 := &Hook{Cmd: "echo 3"}
+
+	tests := []struct {
+		name  string
+		hooks []*Hook
+		want  []*Hook
+	}{
+		{
+			name:  "success",
+			hooks: []*Hook{hook, hook2, hook3},
+			want:  []*Hook{hook, hook2, hook3},
+		},
+		{
+			name:  "successWithDuplicate",
+			hooks: []*Hook{hook, hookDuplicate, hook2, hookDuplicate, hook3},
+			want:  []*Hook{hook, hook2, hook3},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &ManagerHook{
+				hooks: tt.hooks,
+			}
+			got := m.deduplicate()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
