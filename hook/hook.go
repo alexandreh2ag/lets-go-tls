@@ -41,10 +41,22 @@ func (m *ManagerHook) GetHookChan() chan<- *Hook {
 	return m.hookChan
 }
 
+func (m *ManagerHook) deduplicate() []*Hook {
+	hooks := []*Hook{}
+	seen := make(map[string]bool)
+	for _, hook := range m.hooks {
+		if !seen[hook.Cmd] {
+			seen[hook.Cmd] = true
+			hooks = append(hooks, hook)
+		}
+	}
+	return hooks
+}
+
 func (m *ManagerHook) RunHooks() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-
+	m.hooks = m.deduplicate()
 	for _, hook := range m.hooks {
 		err := m.RunHook(hook)
 		if err != nil {
