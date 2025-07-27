@@ -200,6 +200,20 @@ func getAgentConfig() agentConfig.Config {
 				Group:          "root",
 			}),
 		},
+		{
+			Id:   "haproxy",
+			Type: certificate.HaproxyKey,
+			Config: decodeToMap(certificate.ConfigHaproxy{
+				ConfigFs: certificate.ConfigFs{
+					Path:           "/etc/haproxy/ssl",
+					PrefixFilename: "",
+					Owner:          "root",
+					Group:          "root",
+					AddPem:         true,
+				},
+				CrtListPath: "/etc/haproxy/crt-list.txt",
+			}),
+		},
 	}
 
 	return agentCfg

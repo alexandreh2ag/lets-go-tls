@@ -75,6 +75,7 @@ storages:
           prefix_filename: "ssl."
           owner: "root"
           group: "root"
+          add_pem: false # when true, add pem file
           only_matched_domains: false # when true, only store certificate specified in specific_domains
           specific_domains:
             - identifier: custom # mandatory
@@ -122,4 +123,45 @@ tree structure example:
 └── ssl/
     ├── ssl.example.com-0.yml
     └── ssl.foo.com-0.yml
+```
+
+### Haproxy
+
+```yaml
+storages:
+    - id: haproxy
+      type: haproxy
+      config:
+          path: /etc/haproxy/ssl # mandatory
+          crt_list_path: /etc/haproxy/crt-list.txt # optional, default value: {{ path }}/crt-list.txt
+          prefix_filename: "ssl."
+          owner: "root"
+          group: "root"
+          add_pem: true # value forced to true
+          only_matched_domains: false # when true, only store certificate specified in specific_domains
+          specific_domains:
+            - identifier: custom # mandatory
+              path: "custom" # optional, can be absolut or relative
+              domains: # mandatory
+                - bar.com
+          post_hook:
+            cmd: "bash -c 'systemctl reload haproxy'" # mandatory, run command when certificates have changed
+            timeout: 1m0s
+```
+
+tree structure example:
+
+```
+/etc/haproxy
+├── crt-list.txt
+└── ssl/
+    ├── ssl.example.com-0.key
+    ├── ssl.example.com-0.crt
+    ├── ssl.example.com-0.pem
+    ├── ssl.foo.com-0.key
+    ├── ssl.foo.com-0.crt
+    ├── ssl.foo.com-0.pem
+    ├── ssl.custom.key
+    ├── ssl.custom.crt
+    └── ssl.custom.pem
 ```

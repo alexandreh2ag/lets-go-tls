@@ -36,6 +36,7 @@ storages:
 - id: fs
   type: fs
   config:
+    add_pem: false
     group: root
     only_matched_domains: false
     owner: root
@@ -67,3 +68,15 @@ storages:
     owner: root
     path: /etc/traefik/config
     prefix_filename: ""
+- id: haproxy
+  type: haproxy
+  config:
+    add_pem: true
+    crt_list_path: /etc/haproxy/crt-list.txt
+    group: root
+    only_matched_domains: false
+    owner: root
+    path: /etc/haproxy/ssl
+    post_hook: null
+    prefix_filename: ""
+    specific_domains: []
