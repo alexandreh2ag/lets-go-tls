@@ -107,6 +107,11 @@ func TestCertificate_GetKeyFilename(t *testing.T) {
 	assert.Equal(t, "foo.key", c.GetKeyFilename())
 }
 
+func TestCertificate_GetPemFilename(t *testing.T) {
+	c := Certificate{Identifier: "foo"}
+	assert.Equal(t, "foo.pem", c.GetPemFilename())
+}
+
 func TestCertificates_CheckIdentifierUnique(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -338,6 +343,11 @@ func TestGetKeyFilename(t *testing.T) {
 	assert.Equal(t, "foo.key", GetKeyFilename(identifier))
 }
 
+func TestGetPemFilename(t *testing.T) {
+	identifier := "foo"
+	assert.Equal(t, "foo.pem", GetPemFilename(identifier))
+}
+
 func TestGetX509Certificate(t *testing.T) {
 	certPEM := []byte(`
 -----BEGIN CERTIFICATE-----
@@ -384,4 +394,31 @@ B0JJs8CQfk8HQCPK5pdaZrsc+1cWqPDuUSpuDTi06NGbPD7xYGIwcKoEAg==
 			}
 		})
 	}
+}
+
+func TestCertificate_GetPemContent(t *testing.T) {
+	want := []byte(`-----BEGIN CERTIFICATE-----
+MIIC+zCCAeOgAwIBAgIJAO0r1z8wDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwH
+...
+-----END CERTIFICATE-----
+
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASC...
+-----END PRIVATE KEY-----
+`)
+	cert := []byte(`-----BEGIN CERTIFICATE-----
+MIIC+zCCAeOgAwIBAgIJAO0r1z8wDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwH
+...
+-----END CERTIFICATE-----`)
+
+	key := []byte(`-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASC...
+-----END PRIVATE KEY-----`)
+	c := Certificate{
+
+		Certificate: cert,
+		Key:         key,
+	}
+	got := c.GetPemContent()
+	assert.Equalf(t, string(want), string(got), "GetPemContent()")
 }

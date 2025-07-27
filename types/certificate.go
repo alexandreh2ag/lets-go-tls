@@ -111,6 +111,16 @@ func (c Certificate) GetCertificateFilename() string {
 	return GetCertificateFilename(c.Identifier)
 }
 
+func (c Certificate) GetPemFilename() string {
+	return GetPemFilename(c.Identifier)
+}
+
+func (c Certificate) GetPemContent() []byte {
+	content := append(c.Certificate, []byte("\n\n")...)
+	content = append(content, c.Key...)
+	return append(content, []byte("\n")...)
+}
+
 func (c Certificate) Match(domains Domains) bool {
 	if len(c.Domains) > 0 && len(domains) > 0 {
 		for _, domain := range domains {
@@ -129,6 +139,10 @@ func GetKeyFilename(identifier string) string {
 
 func GetCertificateFilename(identifier string) string {
 	return fmt.Sprintf("%s.%s", identifier, "crt")
+}
+
+func GetPemFilename(identifier string) string {
+	return fmt.Sprintf("%s.%s", identifier, "pem")
 }
 
 func GetX509Certificate(cert []byte) (*x509.Certificate, error) {

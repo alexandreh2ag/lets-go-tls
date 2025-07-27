@@ -2,6 +2,7 @@ package certificate
 
 import (
 	"errors"
+	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
@@ -203,6 +204,33 @@ func Test_fs_Save_Success(t *testing.T) {
 	errs := storage.Save(certificates, chanHook)
 
 	assert.Len(t, errs, 0)
+}
+
+func Test_fs_save_Success(t *testing.T) {
+	ctx := context.TestContext(nil)
+	identifier1 := "example.com-0"
+	identifier2 := "foo.com-0"
+	identifierCustom := "foo-custom"
+	certificates := types.Certificates{
+		{Identifier: identifier1, Domains: types.Domains{"example.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
+		{Identifier: identifier2, Domains: types.Domains{"foo.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+
+	storage := &fs{
+		fs: ctx.Fs,
+		cfg: ConfigFs{
+			Path: "/app",
+			SpecificDomains: []ConfigSpecificDomain{
+				{Identifier: identifierCustom, Domains: types.Domains{"foo.com"}},
+			},
+		},
+
+		checksum: appFs.NewChecksum(ctx.Fs),
+	}
+	isChanged, errs := storage.save(certificates)
+
+	assert.Equal(t, true, isChanged)
+	assert.Len(t, errs, 0)
 	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier1+".key"))
 	assert.NoError(t, err)
 	assert.Equal(t, "key", string(contentKey))
@@ -220,7 +248,7 @@ func Test_fs_Save_Success(t *testing.T) {
 	assert.Equal(t, "certificate", string(contentCrt))
 }
 
-func Test_fs_Save_SuccessWithOnlyMatchedDomains(t *testing.T) {
+func Test_fs_save_SuccessWithOnlyMatchedDomains(t *testing.T) {
 	ctx := context.TestContext(nil)
 	identifier := "example.com-0"
 	identifier2 := "example2.com-0"
@@ -240,8 +268,9 @@ func Test_fs_Save_SuccessWithOnlyMatchedDomains(t *testing.T) {
 		checksum: appFs.NewChecksum(ctx.Fs),
 	}
 
-	errs := storage.Save(certificates, make(chan *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 0)
+	assert.Equal(t, true, isChanged)
 	contentKey, err := afero.ReadFile(ctx.Fs, filepath.Join(storage.cfg.Path, identifier+".key"))
 	assert.NoError(t, err)
 	assert.Equal(t, "key", string(contentKey))
@@ -259,7 +288,7 @@ func Test_fs_Save_SuccessWithOnlyMatchedDomains(t *testing.T) {
 	assert.False(t, existCrt)
 }
 
-func Test_fs_Save_FailCreateDir(t *testing.T) {
+func Test_fs_save_FailCreateDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
 	gomock.InOrder(
@@ -271,11 +300,12 @@ func Test_fs_Save_FailCreateDir(t *testing.T) {
 		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
 	}
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
 }
 
-func Test_fs_Save_FailWriteKey(t *testing.T) {
+func Test_fs_save_FailWriteKey(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
 	certificates := types.Certificates{
@@ -289,11 +319,12 @@ func Test_fs_Save_FailWriteKey(t *testing.T) {
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
 }
 
-func Test_fs_Save_FailChownKey(t *testing.T) {
+func Test_fs_save_FailChownKey(t *testing.T) {
 	ctx := context.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
@@ -310,11 +341,12 @@ func Test_fs_Save_FailChownKey(t *testing.T) {
 		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
 }
 
-func Test_fs_Save_FailWriteCertificate(t *testing.T) {
+func Test_fs_save_FailWriteCertificate(t *testing.T) {
 	ctx := context.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
@@ -333,11 +365,12 @@ func Test_fs_Save_FailWriteCertificate(t *testing.T) {
 		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
 }
 
-func Test_fs_Save_FailChownCertificate(t *testing.T) {
+func Test_fs_save_FailChownCertificate(t *testing.T) {
 	ctx := context.TestContext(nil)
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
@@ -358,8 +391,73 @@ func Test_fs_Save_FailChownCertificate(t *testing.T) {
 		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
 	)
 	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}, checksum: appFs.NewChecksum(fsMock)}
-	errs := storage.Save(certificates, make(chan<- *hook.Hook))
+	isChanged, errs := storage.save(certificates)
 	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
+}
+
+func Test_fs_save_FailWritePem(t *testing.T) {
+	ctx := context.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	fsMock := mockAfero.NewMockFs(ctrl)
+	certificates := types.Certificates{
+		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	file, _ := ctx.Fs.Create("/app/test.txt")
+	file2, _ := ctx.Fs.Create("/app/test.txt")
+	gomock.InOrder(
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// key file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// cert file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file2, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// pem file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error")),
+	)
+	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app", AddPem: true}, checksum: appFs.NewChecksum(fsMock)}
+	isChanged, errs := storage.save(certificates)
+	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
+}
+
+func Test_fs_save_FailChownPem(t *testing.T) {
+	ctx := context.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	fsMock := mockAfero.NewMockFs(ctrl)
+	certificates := types.Certificates{
+		{Identifier: "example.com", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	file, _ := ctx.Fs.Create("/app/test.txt")
+	file2, _ := ctx.Fs.Create("/app/test.txt")
+	file3, _ := ctx.Fs.Create("/app/test.txt")
+	gomock.InOrder(
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("fail")),
+		fsMock.EXPECT().Mkdir(gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// key file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// cert file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file2, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
+		// pem file
+		fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file3, nil),
+		fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail chown")),
+	)
+	storage := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app", AddPem: true}, checksum: appFs.NewChecksum(fsMock)}
+	isChanged, errs := storage.save(certificates)
+	assert.Len(t, errs, 1)
+	assert.Equal(t, false, isChanged)
 }
 
 func Test_fs_GetKeyPath(t *testing.T) {
@@ -388,6 +486,13 @@ func Test_fs_GetCertificatePathWithPrefix(t *testing.T) {
 	cert := &types.Certificate{Identifier: "example.com-0"}
 	f := &fs{cfg: ConfigFs{Path: "/app", PrefixFilename: "ssl."}}
 	assert.Equal(t, want, f.GetCertificatePath(cert))
+}
+
+func Test_fs_GetPemPath(t *testing.T) {
+	want := "/app/example.com-0.pem"
+	pem := &types.Certificate{Identifier: "example.com-0"}
+	f := &fs{cfg: ConfigFs{Path: "/app"}}
+	assert.Equal(t, want, f.GetPemPath(pem))
 }
 
 func Test_fs_GetFilePathWithPrefix(t *testing.T) {
@@ -452,7 +557,7 @@ func Test_fs_GetFilePath(t *testing.T) {
 	}
 }
 
-func Test_fs_Delete(t *testing.T) {
+func Test_haproxy_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	fsMock := mockAfero.NewMockFs(ctrl)
 
@@ -490,6 +595,38 @@ func Test_fs_Delete(t *testing.T) {
 	}()
 	f := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app", PostHook: postHook}}
 	assert.Equalf(t, want, f.Delete(certificates, chanHook), "Delete(%v)", certificates)
+}
+
+func Test_fs_delete(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	fsMock := mockAfero.NewMockFs(ctrl)
+
+	gomock.InOrder(
+		//example.com-0
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, nil),
+		fsMock.EXPECT().Remove(gomock.Any()).Times(1).Return(nil),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, nil),
+		fsMock.EXPECT().Remove(gomock.Any()).Times(1).Return(nil),
+		//example.com-1
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, nil),
+		fsMock.EXPECT().Remove(gomock.Any()).Times(1).Return(errors.New("error")),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, nil),
+		fsMock.EXPECT().Remove(gomock.Any()).Times(1).Return(errors.New("error")),
+		//example.com-2
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+		fsMock.EXPECT().Stat(gomock.Any()).Times(1).Return(nil, errors.New("error")),
+	)
+	certificates := types.Certificates{
+		{Identifier: "example.com-0", Key: []byte("key"), Certificate: []byte("certificate")},
+		{Identifier: "example.com-1", Key: []byte("key"), Certificate: []byte("certificate")},
+		{Identifier: "example.com-2", Key: []byte("key"), Certificate: []byte("certificate")},
+	}
+	want := []error{errors.New("error"), errors.New("error")}
+
+	f := &fs{fs: fsMock, cfg: ConfigFs{Path: "/app"}}
+	isChanged, errs := f.delete(certificates)
+	assert.Equalf(t, want, errs, "Delete(%v)", certificates)
+	assert.Equal(t, true, isChanged, "Delete(%v)", certificates)
 }
 
 func Test_fs_GetSpecificDomainConfig(t *testing.T) {
@@ -569,6 +706,155 @@ func TestValidateSpecificDomainsCfg(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func Test_fs_WriteFile(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	tests := []struct {
+		name    string
+		content []byte
+		path    string
+		want    bool
+		mockFn  func() afero.Fs
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name:    "SuccessWriteFileWithFileNotExists",
+			content: []byte("foo"),
+			path:    "/app/foo.txt",
+			mockFn:  func() afero.Fs { return afero.NewMemMapFs() },
+			want:    true,
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "SuccessWriteFileWithFileExistsAndChange",
+			content: []byte("foo2"),
+			path:    "/app/foo.txt",
+			mockFn: func() afero.Fs {
+				fsMock := afero.NewMemMapFs()
+				_ = fsMock.MkdirAll("/app", 0755)
+				_ = afero.WriteFile(fsMock, "/app/foo.txt", []byte("foo"), 0644)
+				return fsMock
+			},
+			want:    true,
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "SuccessWriteFileWithFileExistsAndNoChange",
+			content: []byte("foo"),
+			path:    "/app/foo.txt",
+			mockFn: func() afero.Fs {
+				fsMock := afero.NewMemMapFs()
+				_ = fsMock.MkdirAll("/app", 0755)
+				_ = afero.WriteFile(fsMock, "/app/foo.txt", []byte("foo"), 0644)
+				return fsMock
+			},
+			want:    false,
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "FailedWriteFile",
+			content: []byte("foo"),
+			path:    "/app/foo.txt",
+			mockFn: func() afero.Fs {
+				fsMock := mockAfero.NewMockFs(ctrl)
+				fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				return fsMock
+			},
+			want:    false,
+			wantErr: assert.Error,
+		},
+		{
+			name:    "FailedChownFile",
+			content: []byte("foo"),
+			path:    "/app/foo.txt",
+			mockFn: func() afero.Fs {
+				fsStorage := afero.NewMemMapFs()
+				file, _ := fsStorage.Create("/app/foo.txt")
+				fsMock := mockAfero.NewMockFs(ctrl)
+				fsMock.EXPECT().Open(gomock.Any()).Times(1).Return(nil, errors.New("error"))
+				fsMock.EXPECT().OpenFile(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(file, nil)
+				fsMock.EXPECT().Chown(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("error"))
+				return fsMock
+			},
+			want:    false,
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fsMock := tt.mockFn()
+			f := fs{
+				fs:       fsMock,
+				checksum: appFs.NewChecksum(fsMock),
+			}
+			got, err := f.WriteFile(tt.content, tt.path)
+			if !tt.wantErr(t, err, fmt.Sprintf("WriteFile(%v, %v)", tt.content, tt.path)) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "WriteFile(%v, %v)", tt.content, tt.path)
+		})
+	}
+}
+
+func Test_fs_GetPathConfig(t *testing.T) {
+	tests := []struct {
+		name  string
+		cfg   ConfigFs
+		cert  *types.Certificate
+		want  certificatePathCfg
+		want1 bool
+	}{
+		{
+			name: "Success",
+			cfg:  ConfigFs{Path: "/app"},
+			cert: &types.Certificate{Identifier: "example.com-0"},
+			want: certificatePathCfg{
+				KeyPath:  "/app/example.com-0.key",
+				CertPath: "/app/example.com-0.crt",
+				PemPath:  "/app/example.com-0.pem",
+			},
+			want1: false,
+		},
+		{
+			name: "SuccessWithOnlyMatchedDomains",
+			cfg: ConfigFs{Path: "/app",
+				OnlyMatchedDomains: true,
+				SpecificDomains: []ConfigSpecificDomain{
+					{Identifier: "example.com", Domains: types.Domains{"example.com"}},
+				}},
+			cert: &types.Certificate{Identifier: "example.com-0", Domains: types.Domains{"example.com"}},
+			want: certificatePathCfg{
+				KeyPath:  "/app/example.com.key",
+				CertPath: "/app/example.com.crt",
+				PemPath:  "/app/example.com.pem",
+			},
+			want1: false,
+		},
+		{
+			name: "SuccessWithOnlyMatchedDomainsAndNoMatch",
+			cfg: ConfigFs{Path: "/app",
+				OnlyMatchedDomains: true,
+				SpecificDomains: []ConfigSpecificDomain{
+					{Identifier: "example2.com", Domains: types.Domains{"example2.com"}},
+				}},
+			cert:  &types.Certificate{Identifier: "example.com-0", Domains: types.Domains{"example.com"}},
+			want:  certificatePathCfg{},
+			want1: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := fs{
+				cfg: tt.cfg,
+			}
+			got, got1 := f.GetPathConfig(tt.cert)
+			assert.Equalf(t, tt.want, got, "GetPathConfig(%v)", tt.cert)
+			assert.Equalf(t, tt.want1, got1, "GetPathConfig(%v)", tt.cert)
 		})
 	}
 }
