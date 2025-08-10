@@ -60,6 +60,20 @@ requesters:
               - https://127.0.0.1/api
 ```
 
+### Nginx
+
+Nginx config is parsed and find all domains in `server_name` when directives `ssl_certificate` and `ssl_certificate_key` are defined in `server` block.
+
+```yaml
+requesters:
+      - id: nginx
+        type: nginx
+        config:
+          nginx_cfg_path: /etc/nginx/nginx.conf
+```
+
+Note: Vhost with server name who contains invalid characters example: `server_name (foo|bar).example.com;` or `server_name *.example.com;` will be ignored.
+
 ## Storages
 
 A storage defines where certificate must be stored.
@@ -165,3 +179,22 @@ tree structure example:
     ├── ssl.custom.crt
     └── ssl.custom.pem
 ```
+
+### Nginx
+
+Nginx config is parsed and write certificates and keys in `ssl_certificate` and `ssl_certificate_key` path, based on `server_name` domains.
+
+```yaml
+storages:
+      - id: nginx
+        type: nginx
+        config:
+          nginx_cfg_path: /etc/nginx/nginx.conf # mandatory
+          group: root
+          owner: root
+          post_hook:
+            cmd: "bash -c 'systemctl reload nginx'" # mandatory, run command when certificates have changed
+            timeout: 1m0s
+```
+
+Note: Vhost with server name who contains invalid characters example: `server_name (foo|bar).example.com;` or `server_name *.example.com;` will be ignored.

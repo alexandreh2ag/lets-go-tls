@@ -191,7 +191,7 @@ func TestCertificates_Match(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, tt.c.Match(tt.request, tt.onlyValid), "Match(%v)", tt.request)
+			assert.Equalf(t, tt.want, tt.c.Match(tt.request.Domains, tt.onlyValid), "Match(%v)", tt.request)
 		})
 	}
 }

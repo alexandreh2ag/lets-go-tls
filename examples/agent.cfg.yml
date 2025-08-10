@@ -28,6 +28,10 @@ requesters:
   config:
     addresses:
     - http://127.0.0.1
+- id: nginx
+  type: nginx
+  config:
+    nginx_cfg_path: /etc/nginx/nginx.conf
 state:
   config:
     path: /var/lib/lets-go-tls/state.json
@@ -77,6 +81,22 @@ storages:
     only_matched_domains: false
     owner: root
     path: /etc/haproxy/ssl
-    post_hook: null
+    post_hook:
+      cmd: echo 1
+      timeout: 1m0s
+    prefix_filename: ""
+    specific_domains: []
+- id: nginx
+  type: nginx
+  config:
+    add_pem: false
+    group: root
+    nginx_cfg_path: /etc/nginx/nginx.conf
+    only_matched_domains: false
+    owner: root
+    path: ""
+    post_hook:
+      cmd: echo 1
+      timeout: 1m0s
     prefix_filename: ""
     specific_domains: []

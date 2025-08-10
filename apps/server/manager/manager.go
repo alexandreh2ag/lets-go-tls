@@ -291,7 +291,7 @@ func (cm *CertifierManager) FetchRequests(ctx *appCtx.ServerContext) ([]*types.D
 func (cm *CertifierManager) MatchingRequests(ctx *appCtx.ServerContext, state *types.State, domainsRequests []*types.DomainRequest) {
 	// check domainRequest is already in typesStorageState.Certificates or add it
 	for _, request := range domainsRequests {
-		cert := state.Certificates.Match(request, false)
+		cert := state.Certificates.Match(request.Domains, false)
 		if cert == nil {
 			cert = &types.Certificate{Domains: request.Domains, Main: string(request.Domains[0])}
 			// generate name

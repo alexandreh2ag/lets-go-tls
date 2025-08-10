@@ -159,6 +159,13 @@ func getAgentConfig() agentConfig.Config {
 				Addresses: []string{"http://127.0.0.1"},
 			}),
 		},
+		{
+			Id:   "nginx",
+			Type: agentRequester.NginxKey,
+			Config: decodeToMap(agentRequester.ConfigNginx{
+				NginxCfgPath: "/etc/nginx/nginx.conf",
+			}),
+		},
 	}
 
 	agentCfg.Storages = []agentConfig.StorageConfig{
@@ -210,8 +217,27 @@ func getAgentConfig() agentConfig.Config {
 					Owner:          "root",
 					Group:          "root",
 					AddPem:         true,
+					PostHook: &hook.Hook{
+						Cmd:     "echo 1",
+						Timeout: time.Second * 60,
+					},
 				},
 				CrtListPath: "/etc/haproxy/crt-list.txt",
+			}),
+		},
+		{
+			Id:   "nginx",
+			Type: certificate.NginxKey,
+			Config: decodeToMap(certificate.ConfigNginx{
+				NginxCfgPath: "/etc/nginx/nginx.conf",
+				ConfigFs: certificate.ConfigFs{
+					Owner: "root",
+					Group: "root",
+					PostHook: &hook.Hook{
+						Cmd:     "echo 1",
+						Timeout: time.Second * 60,
+					},
+				},
 			}),
 		},
 	}

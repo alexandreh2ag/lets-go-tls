@@ -10,12 +10,12 @@ import (
 
 type Certificates []*Certificate
 
-func (c Certificates) Match(request *DomainRequest, onlyValid bool) *Certificate {
+func (c Certificates) Match(domains Domains, onlyValid bool) *Certificate {
 	for _, certificate := range c {
 		if onlyValid && !certificate.IsValid() {
 			continue
 		}
-		if certificate.Match(request.Domains) {
+		if certificate.Match(domains) {
 			return certificate
 		}
 	}
