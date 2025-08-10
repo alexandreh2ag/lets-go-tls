@@ -48,7 +48,7 @@ func GetCertificatesFromRequests(c echo.Context) error {
 			request,
 		))
 
-		cert := state.Certificates.Match(request, true)
+		cert := state.Certificates.Match(request.Domains, true)
 		if cert != nil {
 			response.Certificates = append(response.Certificates, cert)
 			response.Requests.Found = append(response.Requests.Found, request)

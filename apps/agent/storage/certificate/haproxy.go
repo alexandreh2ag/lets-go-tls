@@ -40,7 +40,6 @@ type haproxy struct {
 	fsStorage *fs
 	id        string
 	fs        afero.Fs
-	checksum  *appFs.Checksum
 	cfg       ConfigHaproxy
 
 	uid int
@@ -136,9 +135,8 @@ func createHaproxyStorage(ctx *context.AgentContext, cfg config.StorageConfig) (
 	uid := os.GetUserUID(instanceConfig.Owner)
 	gid := os.GetGroupUID(instanceConfig.Group)
 
-	checksum := appFs.NewChecksum(ctx.Fs)
-	instanceFs := &fs{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig.ConfigFs, checksum: checksum, uid: uid, gid: gid}
-	instance := &haproxy{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, fsStorage: instanceFs, checksum: checksum, uid: uid, gid: gid}
+	instanceFs := &fs{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig.ConfigFs, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
+	instance := &haproxy{id: cfg.Id, fs: ctx.Fs, cfg: instanceConfig, fsStorage: instanceFs, uid: uid, gid: gid}
 
 	return instance, nil
 }

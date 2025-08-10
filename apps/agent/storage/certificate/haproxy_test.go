@@ -31,8 +31,8 @@ func Test_createHaproxyStorage(t *testing.T) {
 	cfgWithCrtList := ConfigHaproxy{ConfigFs: cfgFsFile, CrtListPath: "/crt-list.txt"}
 
 	fsStorage := &fs{id: "foo", fs: ctx.Fs, cfg: cfgFsFile, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
-	storage := &haproxy{id: "foo", fs: ctx.Fs, fsStorage: fsStorage, cfg: cfg, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
-	storageWithCrtList := &haproxy{id: "foo", fs: ctx.Fs, fsStorage: fsStorage, cfg: cfgWithCrtList, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid}
+	storage := &haproxy{id: "foo", fs: ctx.Fs, fsStorage: fsStorage, cfg: cfg, uid: uid, gid: gid}
+	storageWithCrtList := &haproxy{id: "foo", fs: ctx.Fs, fsStorage: fsStorage, cfg: cfgWithCrtList, uid: uid, gid: gid}
 
 	tests := []struct {
 		name        string
@@ -130,8 +130,6 @@ func Test_haproxy_Save_Success(t *testing.T) {
 		fs:        ctx.Fs,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	errs := storage.Save(certificates, chanHook)
 
@@ -207,8 +205,6 @@ func Test_haproxy_Save_Success_FailedGenerateCrtList(t *testing.T) {
 		fs:        fsMock,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	errs := storage.Save(certificates, make(chan *hook.Hook))
 	assert.Len(t, errs, 1)
@@ -263,8 +259,6 @@ func Test_fs_Delete(t *testing.T) {
 		fs:        fsMock,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	assert.Equalf(t, want, storage.Delete(certificates, chanHook), "Delete(%v)", certificates)
 }
@@ -407,8 +401,6 @@ func Test_haproxy_generateCrtListFile_Success(t *testing.T) {
 		fs:        fsMock,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	isChanged, err := storage.generateCrtListFile(certificates)
 	assert.NoError(t, err)
@@ -440,8 +432,6 @@ func Test_haproxy_generateCrtListFile_FailedCreateDir(t *testing.T) {
 		fs:        fsMock,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	isChanged, err := storage.generateCrtListFile(certificates)
 	assert.Error(t, err)
@@ -467,8 +457,6 @@ func Test_haproxy_generateCrtListFile_FailedGenerateCrtListContent(t *testing.T)
 		fs:        ctx.Fs,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	haproxyCrtListTmplOld := haproxyCrtListTmpl
 	haproxyCrtListTmpl = `{{- rang $sni, $path := . }}
@@ -510,8 +498,6 @@ func Test_haproxy_generateCrtListFile_FailedWriteFile(t *testing.T) {
 		fs:        fsMock,
 		cfg:       cfg,
 		fsStorage: fsStorage,
-
-		checksum: checksum,
 	}
 	isChanged, err := storage.generateCrtListFile(certificates)
 	assert.Error(t, err)
