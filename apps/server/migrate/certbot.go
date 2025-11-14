@@ -6,16 +6,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spf13/afero"
-	"os"
-	"path"
-	"path/filepath"
-	"time"
 )
 
 func MigrateCertbot(ctx *context.ServerContext, certbotdir string) (*types.State, error) {
@@ -48,7 +49,7 @@ func ReadCertbotCertificates(ctx *context.ServerContext, dirPath string) (types.
 			Main:       filepath.Base(path),
 		}
 
-		certRaw, errReadCert := afero.ReadFile(ctx.Fs, filepath.Join(path, "cert.pem"))
+		certRaw, errReadCert := afero.ReadFile(ctx.Fs, filepath.Join(path, "fullchain.pem"))
 		if errReadCert != nil {
 			return errReadCert
 		}
@@ -60,7 +61,7 @@ func ReadCertbotCertificates(ctx *context.ServerContext, dirPath string) (types.
 
 		x509Cert, errParse := types.GetX509Certificate(certRaw)
 		if errParse != nil {
-			return fmt.Errorf("failed to decode certificate pem %s: %v", filepath.Join(path, "cert.pem"), errParse)
+			return fmt.Errorf("failed to decode certificate pem %s: %v", filepath.Join(path, "fullchain.pem"), errParse)
 		}
 		domains := types.Domains{}
 		for _, domain := range x509Cert.DNSNames {
