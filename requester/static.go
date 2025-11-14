@@ -1,12 +1,13 @@
 package requester
 
 import (
+	"slices"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
-	"slices"
 )
 
 const (

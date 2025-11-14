@@ -3,6 +3,11 @@ package certificate
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
@@ -14,9 +19,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func Test_fs_ID(t *testing.T) {
@@ -54,6 +56,14 @@ func Test_createFsStorage(t *testing.T) {
 				Config: map[string]interface{}{"path": "/app"},
 			},
 			want: storage,
+		},
+		{
+			name: "SuccessWithPostHookTimeout",
+			cfg: config.StorageConfig{
+				Id:     "foo",
+				Config: map[string]interface{}{"path": "/app", "post_hook": map[string]interface{}{"cmd": "echo 1", "timeout": "10s"}},
+			},
+			want: &fs{id: "foo", fs: ctx.Fs, cfg: ConfigFs{Path: "/app", PostHook: &hook.Hook{Cmd: "echo 1", Timeout: time.Second * 10}}, checksum: appFs.NewChecksum(ctx.Fs), uid: uid, gid: gid},
 		},
 		{
 			name: "FailDecodeCfg",

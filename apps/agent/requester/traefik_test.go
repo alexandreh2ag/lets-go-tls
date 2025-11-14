@@ -51,7 +51,7 @@ func Test_createTraefikV2Provider(t *testing.T) {
 			},
 			want:        want,
 			wantErr:     true,
-			errContains: "'addresses': source data must be an array or slice, got string",
+			errContains: "'addresses' source data must be an array or slice, got string",
 		},
 		{
 			name: "FailValidateCfg",

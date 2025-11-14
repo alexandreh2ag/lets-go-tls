@@ -2,13 +2,14 @@ package httpreq
 
 import (
 	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/providers/dns/httpreq"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
-	"net/url"
-	"time"
 )
 
 const KeyDnsHttpReq = "httpreq"

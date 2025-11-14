@@ -3,9 +3,9 @@ package ovh
 import (
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	legoOVH "github.com/go-acme/lego/v4/providers/dns/ovh"
-	"github.com/mitchellh/mapstructure"
 	"time"
 )
 

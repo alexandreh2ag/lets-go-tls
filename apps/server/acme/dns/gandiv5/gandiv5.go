@@ -3,10 +3,10 @@ package gandiv5
 import (
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/providers/dns/gandiv5"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
 	"time"
 )
 

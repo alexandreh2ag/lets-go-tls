@@ -1,10 +1,11 @@
 package cache
 
 import (
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_createRedisClusterCache(t *testing.T) {
@@ -27,7 +28,7 @@ func Test_createRedisClusterCache(t *testing.T) {
 			name:        "FailDecodeCfg",
 			cfg:         config.CacheConfig{Type: "redis", Config: map[string]interface{}{"address": ""}},
 			wantErr:     true,
-			errContains: "'address': source data must be an array or slice, got string",
+			errContains: "'address' source data must be an array or slice, got string",
 		},
 		{
 			name:        "FailValidateCfg",
