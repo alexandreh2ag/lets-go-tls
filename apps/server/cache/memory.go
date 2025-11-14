@@ -3,11 +3,11 @@ package cache
 import (
 	"fmt"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/eko/gocache/lib/v4/cache"
 	gocacheStore "github.com/eko/gocache/store/go_cache/v4"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
 	go_cache "github.com/patrickmn/go-cache"
 	"time"
 )

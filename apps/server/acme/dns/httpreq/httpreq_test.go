@@ -1,10 +1,11 @@
 package httpreq
 
 import (
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_httpReq_ID(t *testing.T) {
@@ -29,6 +30,10 @@ func Test_CreatehttpReq(t *testing.T) {
 		{
 			name: "Success",
 			cfg:  map[string]interface{}{"endpoint": "http://127.0.0.1/", "mode": ""},
+		},
+		{
+			name: "SuccessWithDuration",
+			cfg:  map[string]interface{}{"endpoint": "http://127.0.0.1/", "mode": "", "http_timeout": "10s"},
 		},
 		{
 			name:        "FailDecodeCfg",

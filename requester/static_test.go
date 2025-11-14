@@ -1,11 +1,12 @@
 package requester
 
 import (
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_static_ID_Success(t *testing.T) {
@@ -52,7 +53,7 @@ func Test_createStaticProvider(t *testing.T) {
 			},
 			want:        want,
 			wantErr:     true,
-			errContains: "'domains': source data must be an array or slice, got string",
+			errContains: "'domains' source data must be an array or slice, got string",
 		},
 		{
 			name: "FailValidateCfg",

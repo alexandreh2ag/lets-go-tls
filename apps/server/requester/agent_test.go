@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
 	mockHttp "github.com/alexandreh2ag/lets-go-tls/mocks/http"
@@ -11,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/mock/gomock"
-	"net/http"
-	"testing"
 )
 
 func Test_agent_ID(t *testing.T) {
@@ -49,7 +50,7 @@ func Test_createAgentProvider(t *testing.T) {
 			},
 			want:        want,
 			wantErr:     true,
-			errContains: "'addresses': source data must be an array or slice, got string",
+			errContains: "'addresses' source data must be an array or slice, got string",
 		},
 		{
 			name: "FailValidateCfg",

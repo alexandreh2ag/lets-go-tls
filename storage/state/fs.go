@@ -3,16 +3,17 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/state"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
-	"log/slog"
 )
 
 const (

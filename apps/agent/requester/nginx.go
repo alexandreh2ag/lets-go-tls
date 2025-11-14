@@ -1,14 +1,15 @@
 package requester
 
 import (
+	"log/slog"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	nginxParser "github.com/alexandreh2ag/lets-go-tls/nginx"
 	"github.com/alexandreh2ag/lets-go-tls/requester"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
-	"log/slog"
 )
 
 const (
@@ -29,7 +30,7 @@ type nginx struct {
 	id  string
 	cfg ConfigNginx
 
-	logger    *slog.Logger
+	logger *slog.Logger
 }
 
 func (n nginx) ID() string {

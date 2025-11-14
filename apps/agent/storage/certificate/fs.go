@@ -2,18 +2,19 @@ package certificate
 
 import (
 	"fmt"
+	"path/filepath"
+	"slices"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
 	"github.com/alexandreh2ag/lets-go-tls/hook"
+	"github.com/alexandreh2ag/lets-go-tls/mapstructure"
 	"github.com/alexandreh2ag/lets-go-tls/os"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/storage/certificate"
 	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
-	"path/filepath"
-	"slices"
 )
 
 const (
