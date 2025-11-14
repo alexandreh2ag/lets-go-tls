@@ -3,16 +3,17 @@ package migrate
 import (
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func TestReadCertbotAccount(t *testing.T) {
@@ -180,7 +181,7 @@ EquocxGnp4hY0Tb/HQnfI2xnyyehRANCAASxmwOgZEkkz7ARTYxMP3scm7dc51qM
 				dirCert1 := filepath.Join(dirPath, "dev.cert.aha")
 				_ = fs.MkdirAll(dirPath, 0755)
 				_ = fs.Mkdir(dirCert1, 0755)
-				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "cert.pem"), certValid, 0644)
+				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "fullchain.pem"), certValid, 0644)
 				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "privkey.pem"), keyValid, 0644)
 			},
 			want:    types.Certificates{cert1},
@@ -203,7 +204,7 @@ EquocxGnp4hY0Tb/HQnfI2xnyyehRANCAASxmwOgZEkkz7ARTYxMP3scm7dc51qM
 			},
 			want:       types.Certificates{},
 			wantErr:    assert.Error,
-			wantErrMsg: "open /app/letsencrypt/live/dev.cert.aha/cert.pem: file does not exist",
+			wantErrMsg: "open /app/letsencrypt/live/dev.cert.aha/fullchain.pem: file does not exist",
 		},
 		{
 			name: "failReadKey",
@@ -211,12 +212,12 @@ EquocxGnp4hY0Tb/HQnfI2xnyyehRANCAASxmwOgZEkkz7ARTYxMP3scm7dc51qM
 				dirCert1 := filepath.Join(dirPath, "dev.cert.aha")
 				_ = fs.MkdirAll(dirPath, 0755)
 				_ = fs.Mkdir(dirCert1, 0755)
-				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "cert.pem"), []byte("wrong"), 0644)
+				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "fullchain.pem"), []byte("wrong"), 0644)
 				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "privkey.pem"), keyValid, 0644)
 			},
 			want:       types.Certificates{},
 			wantErr:    assert.Error,
-			wantErrMsg: "failed to decode certificate pem /app/letsencrypt/live/dev.cert.aha/cert.pem: failed to decode cert",
+			wantErrMsg: "failed to decode certificate pem /app/letsencrypt/live/dev.cert.aha/fullchain.pem: failed to decode cert",
 		},
 		{
 			name: "failParseCert",
@@ -224,7 +225,7 @@ EquocxGnp4hY0Tb/HQnfI2xnyyehRANCAASxmwOgZEkkz7ARTYxMP3scm7dc51qM
 				dirCert1 := filepath.Join(dirPath, "dev.cert.aha")
 				_ = fs.MkdirAll(dirPath, 0755)
 				_ = fs.Mkdir(dirCert1, 0755)
-				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "cert.pem"), certValid, 0644)
+				_ = afero.WriteFile(fs, filepath.Join(dirCert1, "fullchain.pem"), certValid, 0644)
 			},
 			want:       types.Certificates{},
 			wantErr:    assert.Error,
