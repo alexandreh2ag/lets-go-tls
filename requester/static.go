@@ -21,7 +21,7 @@ func init() {
 var _ types.Requester = &static{}
 
 type ConfigStatic struct {
-	ListDomains [][]string `mapstructure:"domains" validate:"required,min=1"`
+	ListDomains []types.Domains `mapstructure:"domains" validate:"required,min=1"`
 }
 
 type static struct {
@@ -51,11 +51,9 @@ func createStaticProvider(_ context.Context, cfg config.RequesterConfig) (types.
 	}
 
 	instance := &static{id: cfg.Id}
-	for _, ListDomain := range instanceConfig.ListDomains {
-		for _, domain := range ListDomain {
-			domainRequest := &types.DomainRequest{Requester: instance, Domains: types.Domains{types.Domain(domain)}}
-			instance.domainRequests = append(instance.domainRequests, domainRequest)
-		}
+	for _, listDomain := range instanceConfig.ListDomains {
+		request := &types.DomainRequest{Requester: instance, Domains: listDomain}
+		instance.domainRequests = append(instance.domainRequests, request)
 	}
 
 	instance.domainRequests = slices.DeleteFunc(instance.domainRequests, func(item *types.DomainRequest) bool {
