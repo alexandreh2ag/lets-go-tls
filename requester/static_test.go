@@ -28,7 +28,10 @@ func Test_static_Fetch_Success(t *testing.T) {
 func Test_createStaticProvider(t *testing.T) {
 	ctx := context.TestContext(nil)
 	want := &static{id: "foo"}
-	want.domainRequests = []*types.DomainRequest{{Domains: types.Domains{"foo.com"}, Requester: want}}
+	want.domainRequests = []*types.DomainRequest{
+		{Domains: types.Domains{"foo.com"}, Requester: want},
+		{Domains: types.Domains{"bar.com", "foo.bar.com"}, Requester: want},
+	}
 	tests := []struct {
 		name        string
 		cfg         config.RequesterConfig
@@ -40,7 +43,7 @@ func Test_createStaticProvider(t *testing.T) {
 			name: "Success",
 			cfg: config.RequesterConfig{
 				Id:     "foo",
-				Config: map[string]interface{}{"domains": [][]string{{"foo.com"}, {"127.0.0.1"}}},
+				Config: map[string]interface{}{"domains": [][]string{{"foo.com"}, {"127.0.0.1"}, {"bar.com", "foo.bar.com"}}},
 			},
 			want:    want,
 			wantErr: false,

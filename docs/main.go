@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	agentConfig "github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	agentRequester "github.com/alexandreh2ag/lets-go-tls/apps/agent/requester"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/storage/certificate"
@@ -17,9 +21,6 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/storage/state"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"gopkg.in/yaml.v2"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 const (
@@ -68,7 +69,7 @@ func getServerConfig() serverConfig.Config {
 		{
 			Id:   "static",
 			Type: requester.StaticKey,
-			Config: decodeToMap(requester.ConfigStatic{ListDomains: [][]string{
+			Config: decodeToMap(requester.ConfigStatic{ListDomains: []types.Domains{
 				{"example.com"},
 				{"foo.com", "bar.com"},
 			}}),
@@ -140,7 +141,7 @@ func getAgentConfig() agentConfig.Config {
 		{
 			Id:   "static",
 			Type: requester.StaticKey,
-			Config: decodeToMap(requester.ConfigStatic{ListDomains: [][]string{
+			Config: decodeToMap(requester.ConfigStatic{ListDomains: []types.Domains{
 				{"example.com"},
 				{"foo.com", "bar.com"},
 			}}),
