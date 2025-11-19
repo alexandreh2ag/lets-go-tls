@@ -30,7 +30,8 @@ var _ certificate.Storage = &haproxy{}
 
 var haproxyCrtListTmpl = `{{- range $sni, $path := . }}
 {{ $path }} {{ $sni }}
-{{- end }}`
+{{- end }}
+`
 
 type ConfigHaproxy struct {
 	ConfigFs    `mapstructure:",squash"`

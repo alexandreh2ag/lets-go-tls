@@ -2,6 +2,10 @@ package certificate
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/agent/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
@@ -12,9 +16,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func Test_haproxy_ID(t *testing.T) {
@@ -152,7 +153,7 @@ func Test_haproxy_Save_Success(t *testing.T) {
 
 	crtList, errCrtList := afero.ReadFile(ctx.Fs, cfg.CrtListPath)
 	assert.NoError(t, errCrtList)
-	assert.Equal(t, "\n/app/example.com-0.pem example.com\n/app/foo-custom.pem foo.com", string(crtList))
+	assert.Equal(t, "\n/app/example.com-0.pem example.com\n/app/foo-custom.pem foo.com\n", string(crtList))
 }
 
 func Test_haproxy_Save_Success_FailedGenerateCrtList(t *testing.T) {
@@ -280,7 +281,7 @@ func Test_haproxy_generateCrtListContent_Success(t *testing.T) {
 		{Identifier: "example.com-0", Domains: types.Domains{"example.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
 		{Identifier: "example2.com-0", Domains: types.Domains{"example2.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
 	}
-	want := "\n/app/example.com-0.pem example.com\n/app/example2.com-0.pem example2.com"
+	want := "\n/app/example.com-0.pem example.com\n/app/example2.com-0.pem example2.com\n"
 
 	got, err := h.generateCrtListContent(certificates)
 	assert.NoError(t, err)
@@ -308,7 +309,7 @@ func Test_haproxy_generateCrtListContent_SuccessWithSpecificDomain(t *testing.T)
 		{Identifier: "example.com-0", Domains: types.Domains{"example.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
 		{Identifier: "example2.com-0", Domains: types.Domains{"example2.com"}, Key: []byte("key"), Certificate: []byte("certificate")},
 	}
-	want := "\n/app/example.com.pem example.com"
+	want := "\n/app/example.com.pem example.com\n"
 
 	got, err := h.generateCrtListContent(certificates)
 	assert.NoError(t, err)
