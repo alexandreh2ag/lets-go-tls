@@ -54,8 +54,11 @@ func (m *ManagerHook) deduplicate() []*Hook {
 }
 
 func (m *ManagerHook) RunHooks() {
+	// wait all storage send hook
+	time.Sleep(time.Second * 1)
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+	m.logger.Debug(fmt.Sprintf("manager hook: run hooks (%d)", len(m.hooks)))
 	m.hooks = m.deduplicate()
 	for _, hook := range m.hooks {
 		err := m.RunHook(hook)
