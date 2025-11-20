@@ -2,6 +2,10 @@ package state
 
 import (
 	"encoding/json"
+	"io"
+	"path"
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	appCtx "github.com/alexandreh2ag/lets-go-tls/context"
 	appFs "github.com/alexandreh2ag/lets-go-tls/fs"
@@ -12,9 +16,6 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"path"
-	"testing"
 )
 
 func Test_fs_Load_Success(t *testing.T) {
@@ -68,7 +69,7 @@ func Test_fs_Save_Success(t *testing.T) {
 		Account:      &acme.Account{Email: "dev@foo.com", Registration: &registration.Resource{Body: legoAcme.Account{Status: "valid"}, URI: "https://uri.com"}, Key: []byte("privatekey")},
 		Certificates: types.Certificates{{Domains: types.Domains{"foo.com", "bar.com"}, Key: []byte("key"), Certificate: []byte("certificate")}},
 	}
-	data, _ := json.Marshal(s)
+	data, _ := json.MarshalIndent(s, "", "  ")
 	err := stateStorage.Save(s)
 	assert.NoError(t, err)
 	fileExist, _ := afero.Exists(ctx.Fs, stateStorage.cfg.Path)
