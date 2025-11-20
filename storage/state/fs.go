@@ -60,7 +60,7 @@ func (f fs) Load() (*types.State, error) {
 }
 
 func (f fs) Save(state *types.State) error {
-	data, _ := json.Marshal(state)
+	data, _ := json.MarshalIndent(state, "", "  ")
 
 	if !f.checksum.MustCompareContentWithPath(data, f.cfg.Path) {
 		f.logger.Info(fmt.Sprintf("save state to %s", f.cfg.Path))
