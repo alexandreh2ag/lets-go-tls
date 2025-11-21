@@ -5,6 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme/dns"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	appCtx "github.com/alexandreh2ag/lets-go-tls/apps/server/context"
@@ -22,10 +27,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"log/slog"
-	"reflect"
-	"testing"
-	"time"
 )
 
 const certPemResponseMock = `-----BEGIN CERTIFICATE-----
@@ -352,7 +353,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
+				resolver.EXPECT().ID().AnyTimes().Return(types.DefaultKey)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 			},
 			checkFunc: func(t *testing.T, state *types.State) {},
@@ -367,7 +368,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
 				resource := &certificate.Resource{PrivateKey: []byte("key"), Certificate: []byte(certPemResponseMock)}
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
+				resolver.EXPECT().ID().AnyTimes().Return(types.DefaultKey)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 				resolver.EXPECT().Obtain(gomock.Any()).Times(1).Return(resource, nil)
 			},
@@ -389,7 +390,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
 				resource := &certificate.Resource{PrivateKey: []byte("key"), Certificate: []byte(certPemResponseMock)}
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
+				resolver.EXPECT().ID().AnyTimes().Return(types.DefaultKey)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 				resolver.EXPECT().RenewWithOptions(gomock.Any(), gomock.Any()).Times(1).Return(resource, nil)
 			},
@@ -420,7 +421,6 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
 				resource := &certificate.Resource{PrivateKey: []byte("newKey"), Certificate: []byte(certPemResponseMock)}
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 				resolver.EXPECT().RenewWithOptions(gomock.Any(), gomock.Any()).Times(1).Return(resource, nil)
 			},
@@ -443,7 +443,6 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 			},
 			checkFunc: func(t *testing.T, state *types.State) {
@@ -463,7 +462,6 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 			},
 			checkFunc: func(t *testing.T, state *types.State) {
@@ -482,7 +480,7 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
+				//resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 				resolver.EXPECT().RenewWithOptions(gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New("error"))
 			},
@@ -511,7 +509,6 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 				},
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 			},
 			checkFunc: func(t *testing.T, state *types.State) {
@@ -531,7 +528,6 @@ func TestCertifierManager_ObtainCertificates(t *testing.T) {
 			},
 			mockFunc: func(resolver *mockTypes.MockResolver) {
 				resource := &certificate.Resource{PrivateKey: []byte("key"), Certificate: []byte("wrong")}
-				resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
 				resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 				resolver.EXPECT().Obtain(gomock.Any()).Times(1).Return(resource, nil)
 			},
@@ -767,7 +763,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	resolver := mockTypes.NewMockResolver(ctrl)
-	resolver.EXPECT().Match(gomock.Any()).Times(1).Return(true)
+	resolver.EXPECT().ID().Times(2).Return(types.DefaultKey)
 	resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 	resolver.EXPECT().Obtain(gomock.Any()).Times(1).Return(&certificate.Resource{}, nil)
 	resolvers := types.Resolvers{types.DefaultKey: resolver}

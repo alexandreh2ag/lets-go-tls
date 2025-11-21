@@ -2,6 +2,9 @@ package acme
 
 import (
 	"fmt"
+	"io"
+	"log"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme/dns"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme/http"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
@@ -11,8 +14,6 @@ import (
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/lego"
 	legoLog "github.com/go-acme/lego/v4/log"
-	"io"
-	"log"
 )
 
 var (
