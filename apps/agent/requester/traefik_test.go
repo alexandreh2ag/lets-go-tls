@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/alexandreh2ag/lets-go-tls/context"
 	mockHttp "github.com/alexandreh2ag/lets-go-tls/mocks/http"
@@ -13,8 +16,6 @@ import (
 	traefikTypes "github.com/traefik/traefik/v3/pkg/types"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/mock/gomock"
-	"net/http"
-	"testing"
 )
 
 func Test_traefik_ID(t *testing.T) {
@@ -261,7 +262,8 @@ func Test_traefik_FormatRouters(t *testing.T) {
 			want: []types.DomainRequest{
 				{Domains: types.Domains{types.Domain("foo.com")}},
 				{Domains: types.Domains{types.Domain("a.foo.com"), types.Domain("b.foo.com")}},
-				{Domains: types.Domains{types.Domain("bar.com"), types.Domain("*.bar.com"), types.Domain("sub.bar.com"), types.Domain("*.sub.bar.com")}},
+				{Domains: types.Domains{types.Domain("bar.com"), types.Domain("*.bar.com")}},
+				{Domains: types.Domains{types.Domain("sub.bar.com"), types.Domain("*.sub.bar.com")}},
 			},
 			wantErr: assert.NoError,
 		},
