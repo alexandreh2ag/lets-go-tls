@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -102,8 +103,30 @@ func (t *traefik) Fetch() ([]*types.DomainRequest, error) {
 }
 
 func (t *traefik) FetchInstance(address string) ([]*types.DomainRequest, error) {
-	domains := []*types.DomainRequest{}
+	requests := []*types.DomainRequest{}
 
+	page := 1
+	uri := fmt.Sprintf("%s%s", address, "/api/http/routers")
+
+	for {
+		requestsPage, nextPage, err := t.FetchRoutersPage(fmt.Sprintf("%s?per_page=100&page=%d", uri, page))
+		if err != nil {
+			return requests, err
+		}
+		requests = append(requests, requestsPage...)
+		if nextPage == 0 {
+			return requests, fmt.Errorf("traefik (%s) invalid next page when fetch", t.id)
+		} else if nextPage <= page {
+			break
+		}
+		page = nextPage
+	}
+
+	return requests, nil
+}
+
+func (t *traefik) FetchRoutersPage(uri string) ([]*types.DomainRequest, int, error) {
+	domains := []*types.DomainRequest{}
 	req := fasthttp.AcquireRequest()
 	resp := fasthttp.AcquireResponse()
 	req.SetConnectionClose()
@@ -115,26 +138,27 @@ func (t *traefik) FetchInstance(address string) ([]*types.DomainRequest, error) 
 			fasthttp.ReleaseResponse(resp)
 		}
 	}()
-	uri := fmt.Sprintf("%s%s", address, "/api/http/routers")
+
 	req.Header.SetMethod(http.MethodGet)
 	req.SetRequestURI(uri)
 
 	err := t.httpClient.DoTimeout(req, resp, 1*time.Second)
 
 	if err != nil {
-		return domains, err
+		return domains, 0, err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return domains, errors.New(fmt.Sprintf("response have invalid status code %v", resp.StatusCode()))
+		return domains, 0, errors.New(fmt.Sprintf("response have invalid status code %v", resp.StatusCode()))
 	}
 	routers := []traefikConfigDynamic.Router{}
 	err = json.Unmarshal(resp.Body(), &routers)
 	if err != nil {
-		return domains, err
+		return domains, 0, err
 	}
-
-	return t.FormatRouters(routers)
+	nextPage, _ := strconv.Atoi(string(resp.Header.Peek("X-Next-Page")))
+	requests, errFormat := t.FormatRouters(routers)
+	return requests, nextPage, errFormat
 }
 
 func (t *traefik) FormatRouters(routers []traefikConfigDynamic.Router) ([]*types.DomainRequest, error) {
