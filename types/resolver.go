@@ -16,7 +16,7 @@ func (r Resolvers) FindResolver(certificate *Certificate) Resolver {
 
 	for _, resolver := range r {
 
-		if resolver.Match(certificate) {
+		if resolver.ID() != defaultResolver.ID() && resolver.Match(certificate) {
 			return resolver
 		}
 	}

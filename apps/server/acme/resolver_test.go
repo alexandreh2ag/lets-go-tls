@@ -1,6 +1,8 @@
 package acme
 
 import (
+	"testing"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme/dns"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
@@ -10,7 +12,6 @@ import (
 	"github.com/go-acme/lego/v4/platform/tester"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"testing"
 )
 
 func TestCreateResolvers_Success(t *testing.T) {
