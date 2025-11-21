@@ -141,20 +141,23 @@ func (t *traefik) FormatRouters(routers []traefikConfigDynamic.Router) ([]*types
 	requests := []*types.DomainRequest{}
 
 	for _, router := range routers {
-		domains := types.Domains{}
+
 		if router.TLS == nil {
 			continue
 		}
 
 		if len(router.TLS.Domains) > 0 {
-			for _, domain := range router.TLS.Domains {
-				domains = append(domains, types.Domain(domain.Main))
-				for _, san := range domain.SANs {
+			for _, traefikDomains := range router.TLS.Domains {
+				domains := types.Domains{}
+				domains = append(domains, types.Domain(traefikDomains.Main))
+				for _, san := range traefikDomains.SANs {
 					domains = append(domains, types.Domain(san))
 				}
+				requests = append(requests, &types.DomainRequest{Domains: domains})
 			}
 
 		} else {
+			domains := types.Domains{}
 			parsedDomains, err := traefikHttpmuxer.ParseDomains(router.Rule)
 			if err != nil {
 				return requests, err
@@ -165,8 +168,8 @@ func (t *traefik) FormatRouters(routers []traefikConfigDynamic.Router) ([]*types
 			for _, parsedDomain := range parsedDomains {
 				domains = append(domains, types.Domain(parsedDomain))
 			}
+			requests = append(requests, &types.DomainRequest{Domains: domains})
 		}
-		requests = append(requests, &types.DomainRequest{Domains: domains})
 	}
 	return requests, nil
 }
