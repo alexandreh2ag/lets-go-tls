@@ -81,7 +81,7 @@ func Test_createTraefikV2Provider(t *testing.T) {
 	}
 }
 
-func Test_traefik_FetchIntance(t *testing.T) {
+func Test_traefik_FetchRoutersPage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	a := &traefik{}
 	want := []types.DomainRequest{
@@ -102,6 +102,7 @@ func Test_traefik_FetchIntance(t *testing.T) {
 			funcMock: func(clientHttp *mockHttp.MockClient) {
 				resp := fasthttp.Response{}
 				resp.SetStatusCode(http.StatusOK)
+				resp.Header.Set("X-Next-Page", "1")
 				body, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}, {Rule: "Host(`bar.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
 				resp.SetBody(body)
 				clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
@@ -133,6 +134,98 @@ func Test_traefik_FetchIntance(t *testing.T) {
 				resp := fasthttp.Response{}
 				resp.SetStatusCode(http.StatusOK)
 				resp.SetBody([]byte("{]"))
+				clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clientHttp := mockHttp.NewMockClient(ctrl)
+			tt.funcMock(clientHttp)
+			a.httpClient = clientHttp
+
+			got, _, err := a.FetchRoutersPage("127.0.0.1:80")
+			if !tt.wantErr(t, err, fmt.Sprintf("FetchRoutersPage(127.0.0.1:80)")) {
+				return
+			}
+			requests := []types.DomainRequest{}
+			for _, request := range got {
+				requests = append(requests, *request)
+			}
+			assert.Equalf(t, tt.want, requests, "FetchRoutersPage(127.0.0.1:80)")
+		})
+	}
+}
+
+func Test_traefik_FetchInstance(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	a := &traefik{}
+	want := []types.DomainRequest{
+		{Domains: types.Domains{types.Domain("foo.com")}},
+		{Domains: types.Domains{types.Domain("bar.com")}},
+	}
+	tests := []struct {
+		name    string
+		want    []types.DomainRequest
+		wantErr assert.ErrorAssertionFunc
+
+		funcMock func(clientHttp *mockHttp.MockClient)
+	}{
+		{
+			name:    "Success",
+			want:    want,
+			wantErr: assert.NoError,
+			funcMock: func(clientHttp *mockHttp.MockClient) {
+				resp := fasthttp.Response{}
+				resp.SetStatusCode(http.StatusOK)
+				resp.Header.Set("X-Next-Page", "1")
+				body, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}, {Rule: "Host(`bar.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
+				resp.SetBody(body)
+
+				clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+			},
+		},
+		{
+			name:    "SuccessMultiplePages",
+			want:    want,
+			wantErr: assert.NoError,
+			funcMock: func(clientHttp *mockHttp.MockClient) {
+				resp1 := fasthttp.Response{}
+				resp1.SetStatusCode(http.StatusOK)
+				resp1.Header.Set("X-Next-Page", "2")
+				body, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
+				resp1.SetBody(body)
+
+				resp2 := fasthttp.Response{}
+				resp2.SetStatusCode(http.StatusOK)
+				resp2.Header.Set("X-Next-Page", "1")
+				body2, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`bar.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
+				resp2.SetBody(body2)
+
+				gomock.InOrder(
+					clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp1).Return(nil),
+					clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp2).Return(nil),
+				)
+			},
+		},
+		{
+			name:    "FailWithError",
+			want:    []types.DomainRequest{},
+			wantErr: assert.Error,
+			funcMock: func(clientHttp *mockHttp.MockClient) {
+				clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("fail"))
+			},
+		},
+		{
+			name:    "FailWithWrongNextPage",
+			want:    want,
+			wantErr: assert.Error,
+			funcMock: func(clientHttp *mockHttp.MockClient) {
+				resp := fasthttp.Response{}
+				resp.SetStatusCode(http.StatusOK)
+				resp.Header.Set("X-Next-Page", "wrong")
+				body, _ := json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}, {Rule: "Host(`bar.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
+				resp.SetBody(body)
 				clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
 			},
 		},
@@ -180,6 +273,7 @@ func Test_traefik_Fetch(t *testing.T) {
 			funcMock: func(clientHttp *mockHttp.MockClient) {
 				resp1 := fasthttp.Response{}
 				resp1.SetStatusCode(http.StatusOK)
+				resp1.Header.Set("X-Next-Page", "1")
 				body, _ := json.Marshal([]traefikConfigDynamic.Router{
 					{Rule: "Host(`foo.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}},
 					{Rule: "Host(`127.0.0.1`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}},
@@ -188,6 +282,7 @@ func Test_traefik_Fetch(t *testing.T) {
 
 				resp2 := fasthttp.Response{}
 				resp2.SetStatusCode(http.StatusOK)
+				resp2.Header.Set("X-Next-Page", "1")
 				body, _ = json.Marshal([]traefikConfigDynamic.Router{{Rule: "Host(`bar.com`)", TLS: &traefikConfigDynamic.RouterTLSConfig{}}})
 				resp2.SetBody(body)
 
@@ -258,12 +353,21 @@ func Test_traefik_FormatRouters(t *testing.T) {
 						},
 					},
 				},
+				{
+					Rule: "Host(`sub.foo.com`)",
+					TLS: &traefikConfigDynamic.RouterTLSConfig{
+						Domains: []traefikTypes.Domain{
+							{Main: "sub.foo.com"},
+						},
+					},
+				},
 			},
 			want: []types.DomainRequest{
 				{Domains: types.Domains{types.Domain("foo.com")}},
 				{Domains: types.Domains{types.Domain("a.foo.com"), types.Domain("b.foo.com")}},
 				{Domains: types.Domains{types.Domain("bar.com"), types.Domain("*.bar.com")}},
 				{Domains: types.Domains{types.Domain("sub.bar.com"), types.Domain("*.sub.bar.com")}},
+				{Domains: types.Domains{types.Domain("sub.foo.com")}},
 			},
 			wantErr: assert.NoError,
 		},
