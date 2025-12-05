@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"slices"
@@ -85,7 +86,7 @@ func (c Certificates) Deletes(removeCertificates Certificates) Certificates {
 type Certificate struct {
 	Identifier     string    `json:"identifier,omitempty"`
 	Main           string    `json:"main,omitempty"`
-	Domains        Domains   `json:"domain,omitempty"`
+	Domains        Domains   `json:"domains,omitempty"`
 	Certificate    []byte    `json:"certificate,omitempty"`
 	Key            []byte    `json:"key,omitempty"`
 	ExpirationDate time.Time `json:"expiration_date,omitempty"`
@@ -96,32 +97,52 @@ type Certificate struct {
 	UnusedAt time.Time `json:"unused_at,omitempty"`
 }
 
-func (c Certificate) IsValid() bool {
+func (c *Certificate) UnmarshalJSON(data []byte) error {
+	type Alias Certificate
+	aux := &struct {
+		*Alias
+		LegacyDomains Domains `json:"domain,omitempty"`
+	}{
+		Alias: (*Alias)(c),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	if len(c.Domains) == 0 && len(aux.LegacyDomains) > 0 {
+		c.Domains = aux.LegacyDomains
+	}
+
+	return nil
+}
+
+func (c *Certificate) IsValid() bool {
 	if c.Key == nil || c.Certificate == nil {
 		return false
 	}
 	return true
 }
 
-func (c Certificate) GetKeyFilename() string {
+func (c *Certificate) GetKeyFilename() string {
 	return GetKeyFilename(c.Identifier)
 }
 
-func (c Certificate) GetCertificateFilename() string {
+func (c *Certificate) GetCertificateFilename() string {
 	return GetCertificateFilename(c.Identifier)
 }
 
-func (c Certificate) GetPemFilename() string {
+func (c *Certificate) GetPemFilename() string {
 	return GetPemFilename(c.Identifier)
 }
 
-func (c Certificate) GetPemContent() []byte {
+func (c *Certificate) GetPemContent() []byte {
 	content := append(c.Certificate, []byte("\n\n")...)
 	content = append(content, c.Key...)
 	return append(content, []byte("\n")...)
 }
 
-func (c Certificate) Match(domains Domains) bool {
+func (c *Certificate) Match(domains Domains) bool {
 	if len(c.Domains) > 0 && len(domains) > 0 {
 		for _, domain := range domains {
 			if !slices.Contains(c.Domains, domain) && !slices.Contains(c.Domains, domain.FormatSubdomainToWildcard()) {
