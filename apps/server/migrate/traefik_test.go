@@ -3,6 +3,10 @@ package migrate
 import (
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
+	"testing"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
@@ -10,9 +14,6 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
-	"testing"
-	"time"
 )
 
 func TestReadTraefikData(t *testing.T) {
@@ -46,7 +47,7 @@ func TestReadTraefikData(t *testing.T) {
 		Key:            key,
 		ExpirationDate: time.Date(2035, time.April, 7, 00, 41, 15, 0, time.UTC),
 	}
-	certificateRaw := "\"Certificates\": [{\"Store\": \"default\",\"domain\": {\"main\": \"dev.cert.aha\", \"sans\": [\"dev.cert.aha\", \"dev2.cert.aha\"]}, \"certificate\": \"" + certBase64 + "\",\"key\": \"" + keyBase64 + "\"}]"
+	certificateRaw := "\"Certificates\": [{\"Store\": \"default\",\"domain\": {\"main\": \"dev.cert.aha\", \"sans\": [\"dev2.cert.aha\"]}, \"certificate\": \"" + certBase64 + "\",\"key\": \"" + keyBase64 + "\"}]"
 	tests := []struct {
 		name       string
 		mockFs     func(fs afero.Fs)

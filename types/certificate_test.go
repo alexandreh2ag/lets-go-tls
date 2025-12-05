@@ -1,9 +1,11 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCertificate_Match(t *testing.T) {
@@ -421,4 +423,46 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASC...
 	}
 	got := c.GetPemContent()
 	assert.Equalf(t, string(want), string(got), "GetPemContent()")
+}
+
+func TestCertificate_UnmarshalJSON(t *testing.T) {
+
+	tests := []struct {
+		name    string
+		data    []byte
+		want    *Certificate
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name:    "Success",
+			data:    []byte(`{"identifier": "example.com-0", "main": "example.com", "domains": ["example.com"], "certificate": "Y2VydGlmaWNhdGU=", "key": "a2V5"}`),
+			want:    &Certificate{Identifier: "example.com-0", Main: "example.com", Domains: Domains{"example.com"}, Certificate: []byte("certificate"), Key: []byte("key")},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "SuccessWithOldDomainField",
+			data:    []byte(`{"identifier": "example.com-0", "main": "example.com", "domain": ["example.com"], "certificate": "Y2VydGlmaWNhdGU=", "key": "a2V5"}`),
+			want:    &Certificate{Identifier: "example.com-0", Main: "example.com", Domains: Domains{"example.com"}, Certificate: []byte("certificate"), Key: []byte("key")},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "SuccessWithDomainsAndOldDomainField",
+			data:    []byte(`{"identifier": "example.com-0", "main": "example.com", "domains": ["example.com"], "domain": ["wrong.com"], "certificate": "Y2VydGlmaWNhdGU=", "key": "a2V5"}`),
+			want:    &Certificate{Identifier: "example.com-0", Main: "example.com", Domains: Domains{"example.com"}, Certificate: []byte("certificate"), Key: []byte("key")},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "FailedDecodeCertificate",
+			data:    []byte(`{"identifier": "example.com-0", "main": "example.com", "domains": "example.com"}`),
+			want:    &Certificate{Identifier: "example.com-0", Main: "example.com"},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Certificate{}
+			tt.wantErr(t, json.Unmarshal(tt.data, c), fmt.Sprintf("Unmarshal(%v)", string(tt.data)))
+			assert.Equal(t, tt.want, c)
+		})
+	}
 }
