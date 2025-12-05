@@ -3,12 +3,13 @@ package migrate
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/spf13/afero"
-	"time"
 )
 
 func MigrateTraefik(ctx *context.ServerContext, acmePath string) (*types.State, error) {
@@ -65,10 +66,14 @@ func ReadTraefikData(ctx *context.ServerContext, acmePath string) (*types.State,
 			if errParse != nil {
 				return nil, errParse
 			}
+			domains := types.Domains{}
+			for _, domain := range x509Cert.DNSNames {
+				domains = append(domains, types.Domain(domain))
+			}
 			cert := &types.Certificate{
 				Identifier:      fmt.Sprintf("%s-%v", certData.Domain.Main, 0),
 				Main:            certData.Domain.Main,
-				Domains:         certData.Domain.SANs,
+				Domains:         domains,
 				Certificate:     certData.Certificate,
 				Key:             certData.Key,
 				ExpirationDate:  x509Cert.NotAfter,
