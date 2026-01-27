@@ -5,6 +5,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme"
 	appCtx "github.com/alexandreh2ag/lets-go-tls/apps/server/context"
 	"github.com/alexandreh2ag/lets-go-tls/types"
@@ -16,9 +20,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/jonboulle/clockwork"
 	"github.com/prometheus/client_golang/prometheus"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -154,7 +155,7 @@ func (cm *CertifierManager) Run(ctx *appCtx.ServerContext) error {
 	// remove UnusedAt when a certificate is reuse again
 	// remove unused certificates when retention expired or mark for retention and only if errFetch is nil
 	if len(errFetch) == 0 {
-		ctx.Logger.Info(fmt.Sprintf("clean unused flag when certificates have been reuse agin"))
+		ctx.Logger.Info(fmt.Sprintf("clean unused flag when certificates have been reuse again"))
 		cm.MarkCertificatesAsReused(state.Certificates, domainsRequests)
 
 		ctx.Logger.Info(fmt.Sprintf("clean up unused certificates"))
@@ -220,7 +221,13 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 				Bundle:     true,
 				MustStaple: false,
 			}
-			ctx.Logger.Info(fmt.Sprintf("obtain certificate %s (%v)", certificate.Identifier, certificate.Domains.ToStringSlice()))
+
+			ctx.Logger.Info(fmt.Sprintf(
+				"(resolver: %s) obtain certificate %s (%v)",
+				resolver.ID(),
+				certificate.Identifier,
+				certificate.Domains.ToStringSlice(),
+			))
 			certAcme, err = resolver.Obtain(request)
 		} else if time.Now().Add(cfgAcme.RenewPeriod).After(certificate.ExpirationDate) {
 			certRes := legoCertificate.Resource{
@@ -229,7 +236,12 @@ func (cm *CertifierManager) ObtainCertificates(ctx *appCtx.ServerContext, state 
 				Certificate: certificate.Certificate,
 			}
 			options := &legoCertificate.RenewOptions{Bundle: true, MustStaple: false}
-			ctx.Logger.Info(fmt.Sprintf("renew certificate %s (%v)", certificate.Identifier, certificate.Domains.ToStringSlice()))
+			ctx.Logger.Info(fmt.Sprintf(
+				"(resolver: %s) renew certificate %s (%v)",
+				resolver.ID(),
+				certificate.Identifier,
+				certificate.Domains.ToStringSlice(),
+			))
 			certAcme, err = resolver.RenewWithOptions(certRes, options)
 		} else {
 			ctx.Logger.Debug(fmt.Sprintf("nothing to do for certificate %s", certificate.Identifier))

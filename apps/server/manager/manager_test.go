@@ -763,7 +763,7 @@ func TestCertifierManager_Run_FailObtainCertificates(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	resolver := mockTypes.NewMockResolver(ctrl)
-	resolver.EXPECT().ID().Times(2).Return(types.DefaultKey)
+	resolver.EXPECT().ID().Times(3).Return(types.DefaultKey)
 	resolver.EXPECT().TypeChallenge().Times(1).Return(typesAcme.TypeHTTP01)
 	resolver.EXPECT().Obtain(gomock.Any()).Times(1).Return(&certificate.Resource{}, nil)
 	resolvers := types.Resolvers{types.DefaultKey: resolver}
