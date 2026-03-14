@@ -1,9 +1,10 @@
 package config
 
 import (
+	"time"
+
 	"github.com/alexandreh2ag/lets-go-tls/config"
 	"github.com/go-acme/lego/v4/lego"
-	"time"
 )
 
 type Config struct {
@@ -25,6 +26,13 @@ type AcmeConfig struct {
 	RenewPeriod time.Duration             `mapstructure:"renew_period" validate:"required"`
 	MaxAttempt  int                       `mapstructure:"max_attempt" validate:"required,min=1"`
 	DelayFailed time.Duration             `mapstructure:"delay_failed" validate:"required"`
+
+	HttpChallengeConfig HttpChallengeConfig `mapstructure:"http_challenge"`
+}
+
+type HttpChallengeConfig struct {
+	EnableDocumentRoot bool   `mapstructure:"enable_document_root"`
+	DocumentRoot       string `mapstructure:"document_root" validate:"required_if=EnableDocumentRoot true"`
 }
 
 type CacheConfig struct {

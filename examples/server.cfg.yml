@@ -2,6 +2,9 @@ acme:
   ca_server: https://acme-v02.api.letsencrypt.org/directory
   delay_failed: 24h0m0s
   email: acme@example.com
+  http_challenge:
+    document_root: ""
+    enable_document_root: false
   max_attempt: 3
   renew_period: 240h0m0s
   resolvers:
