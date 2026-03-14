@@ -3,22 +3,28 @@ package http
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"path/filepath"
+
+	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/labstack/echo/v4"
-	"log/slog"
-	"net/http"
+	"github.com/spf13/afero"
 )
 
 var _ acme.Challenge = &ChallengeHTTP{}
 
 type ChallengeHTTP struct {
-	cache  types.Cache
-	logger *slog.Logger
+	cache               types.Cache
+	logger              *slog.Logger
+	fs                  afero.Fs
+	httpChallengeConfig config.HttpChallengeConfig
 }
 
-func NewChallenge(logger *slog.Logger, cache types.Cache) *ChallengeHTTP {
-	return &ChallengeHTTP{logger: logger, cache: cache}
+func NewChallenge(logger *slog.Logger, fs afero.Fs, cache types.Cache, httpChallengeConfig config.HttpChallengeConfig) *ChallengeHTTP {
+	return &ChallengeHTTP{logger: logger, fs: fs, cache: cache, httpChallengeConfig: httpChallengeConfig}
 }
 
 func (ch *ChallengeHTTP) ID() string {
@@ -73,9 +79,33 @@ func (ch *ChallengeHTTP) Handler(c echo.Context) error {
 	if err != nil {
 		ch.logger.Error(fmt.Sprintf("failed to get in cache keyAuth for token %s - domain %s: %v", token, host, err))
 	}
+
+	if keyAuth == "" && ch.httpChallengeConfig.EnableDocumentRoot {
+		tokenPath := filepath.Join(ch.httpChallengeConfig.DocumentRoot, token)
+		keyAuth, err = ch.getFileChallengeKeyAuth(tokenPath)
+		if err != nil {
+			keyAuth = ""
+			ch.logger.Warn(
+				fmt.Sprintf(
+					"failed to get keyAuth (%s - domain %s) for domain from file (%s): %v",
+					token,
+					host,
+					tokenPath,
+					err,
+				),
+			)
+		}
+	}
+
 	if keyAuth != "" {
 		return c.String(http.StatusOK, keyAuth)
 	}
 
 	return c.NoContent(http.StatusNotFound)
+}
+
+func (ch *ChallengeHTTP) getFileChallengeKeyAuth(path string) (string, error) {
+	keyAuth, err := afero.ReadFile(ch.fs, path)
+
+	return string(keyAuth), err
 }

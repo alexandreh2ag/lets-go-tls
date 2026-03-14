@@ -67,7 +67,7 @@ func createResolver(ctx *context.ServerContext, id string, cfg config.ResolverCo
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to register provider for resovler %s: %v", id, err)
+		return nil, fmt.Errorf("failed to register provider for resolver %s: %v", id, err)
 	}
 
 	resolver.Challenge = provider
@@ -79,6 +79,6 @@ func GetHTTPProvider(ctx *context.ServerContext) *http.ChallengeHTTP {
 	if httpProvider != nil {
 		return httpProvider
 	}
-	httpProvider = http.NewChallenge(ctx.Logger, ctx.Cache)
+	httpProvider = http.NewChallenge(ctx.Logger, ctx.Fs, ctx.Cache, ctx.Config.Acme.HttpChallengeConfig)
 	return httpProvider
 }
