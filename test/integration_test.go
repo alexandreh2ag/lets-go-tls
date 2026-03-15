@@ -55,10 +55,11 @@ func TestIntegration_Full(t *testing.T) {
 	agentStatePath := filepath.Join(agentBasePath, "state.json")
 	agentStoragePath := filepath.Join(agentBasePath, "storage")
 
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, acmeHTTPClient := testutil.SetupFakeAPI(t)
 
 	ctxSrv := srvCtx.TestContext(nil)
 	ctxSrv.Fs = fs
+	ctxSrv.Config.Acme.HTTPClient = acmeHTTPClient
 	cfgSrv := &srvConfig.Config{}
 	cfgSrv.HTTP.Listen = srvAddress
 	cfgSrv.Cache.Type = "memory"
