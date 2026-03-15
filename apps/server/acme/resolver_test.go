@@ -6,17 +6,17 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/acme/dns"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/config"
 	"github.com/alexandreh2ag/lets-go-tls/apps/server/context"
+	"github.com/alexandreh2ag/lets-go-tls/internal/testutil"
 	mockTypesAcme "github.com/alexandreh2ag/lets-go-tls/mocks/types/acme"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/lego"
-	"github.com/go-acme/lego/v4/platform/tester"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
 func TestCreateResolvers_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	ctx.Config.Acme.CAServer = apiURL + "/dir"
 	account, _ := acme.NewAccount("dev@example.com")
 	got, err := CreateResolvers(ctx, account)
@@ -26,7 +26,7 @@ func TestCreateResolvers_Success(t *testing.T) {
 
 func TestCreateResolvers_Fail(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	ctx.Config.Acme.CAServer = apiURL + "/dir"
 	ctx.Config.Acme.Resolvers = map[string]config.ResolverConfig{"test": {Type: "wrong"}}
 	account, _ := acme.NewAccount("dev@example.com")
@@ -38,7 +38,7 @@ func TestCreateResolvers_Fail(t *testing.T) {
 
 func Test_createResolver_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 
 	account, _ := acme.NewAccount("dev@example.com")
 	configAcme := lego.NewConfig(account)
@@ -54,7 +54,7 @@ func Test_createResolver_Success(t *testing.T) {
 
 func Test_createResolver_SuccessWithDns(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	ctrl := gomock.NewController(t)
 	key := "dummy"
 	challenge := mockTypesAcme.NewMockChallenge(ctrl)
@@ -91,7 +91,7 @@ func Test_createResolver_FailCreateLegoClient(t *testing.T) {
 
 func Test_createResolver_FailCreateDnsProvider(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 
 	account, _ := acme.NewAccount("dev@example.com")
 	configAcme := lego.NewConfig(account)
