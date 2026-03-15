@@ -1,17 +1,18 @@
 package acme
 
 import (
+	"io"
+	"log"
+	"testing"
+
+	"github.com/alexandreh2ag/lets-go-tls/internal/testutil"
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	legoLog "github.com/go-acme/lego/v4/log"
-	"github.com/go-acme/lego/v4/platform/tester"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"log"
-	"testing"
 )
 
 type dummyChallenge struct {
@@ -46,7 +47,7 @@ func TestResolverAcme_TypeChallenge(t *testing.T) {
 }
 
 func TestResolverAcme_Register(t *testing.T) {
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
@@ -60,7 +61,7 @@ func TestResolverAcme_Register(t *testing.T) {
 }
 
 func TestResolverAcme_Obtain(t *testing.T) {
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
@@ -78,7 +79,7 @@ func TestResolverAcme_Obtain(t *testing.T) {
 }
 
 func TestResolverAcme_RenewWithOptions(t *testing.T) {
-	_, apiURL := tester.SetupFakeAPI(t)
+	_, apiURL := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
