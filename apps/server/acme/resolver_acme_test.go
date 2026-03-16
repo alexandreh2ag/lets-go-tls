@@ -47,12 +47,13 @@ func TestResolverAcme_TypeChallenge(t *testing.T) {
 }
 
 func TestResolverAcme_Register(t *testing.T) {
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
 	cfgAcme := lego.NewConfig(account)
 	cfgAcme.CADirURL = apiURL + "/dir"
+	cfgAcme.HTTPClient = httpClient
 	client, err := lego.NewClient(cfgAcme)
 	assert.NoError(t, err)
 	r := &ResolverAcme{Client: client}
@@ -61,12 +62,13 @@ func TestResolverAcme_Register(t *testing.T) {
 }
 
 func TestResolverAcme_Obtain(t *testing.T) {
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
 	cfgAcme := lego.NewConfig(account)
 	cfgAcme.CADirURL = apiURL + "/dir"
+	cfgAcme.HTTPClient = httpClient
 	client, err := lego.NewClient(cfgAcme)
 	assert.NoError(t, err)
 	r := &ResolverAcme{Client: client}
@@ -79,12 +81,13 @@ func TestResolverAcme_Obtain(t *testing.T) {
 }
 
 func TestResolverAcme_RenewWithOptions(t *testing.T) {
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	legoLog.Logger = log.New(io.Discard, "", log.LstdFlags)
 	account, err := acme.NewAccount("dev@example.com")
 	assert.NoError(t, err)
 	cfgAcme := lego.NewConfig(account)
 	cfgAcme.CADirURL = apiURL + "/dir"
+	cfgAcme.HTTPClient = httpClient
 	client, err := lego.NewClient(cfgAcme)
 	assert.NoError(t, err)
 	r := &ResolverAcme{Client: client}

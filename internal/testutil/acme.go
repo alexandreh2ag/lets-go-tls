@@ -9,32 +9,24 @@ import (
 	"github.com/go-acme/lego/v4/platform/tester"
 )
 
-// SetupFakeAPI creates a minimal stub ACME server for testing.
+// SetupFakeAPI creates a minimal stub ACME server for testing over HTTPS.
 // Unlike lego's tester.SetupFakeAPI, this registers the /nonce handler
 // at the top level to avoid race conditions caused by lazy registration.
-func SetupFakeAPI(t *testing.T) (*http.ServeMux, string) {
+// It returns the mux, the server URL, and an *http.Client that trusts the
+// test server's TLS certificate (use it with lego.Config.HTTPClient).
+func SetupFakeAPI(t *testing.T) (*http.ServeMux, string, *http.Client) {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
+	server := httptest.NewTLSServer(mux)
 	t.Cleanup(server.Close)
 
-	mux.HandleFunc("/nonce", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodHead {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("HEAD /nonce", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Replay-Nonce", "12345")
 		w.Header().Set("Retry-After", "0")
 	})
 
-	mux.HandleFunc("/dir", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("GET /dir", func(w http.ResponseWriter, r *http.Request) {
 		err := tester.WriteJSONResponse(w, acme.Directory{
 			NewNonceURL:   server.URL + "/nonce",
 			NewAccountURL: server.URL + "/account",
@@ -49,5 +41,5 @@ func SetupFakeAPI(t *testing.T) (*http.ServeMux, string) {
 		}
 	})
 
-	return mux, server.URL
+	return mux, server.URL, server.Client()
 }

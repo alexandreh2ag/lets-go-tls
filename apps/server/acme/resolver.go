@@ -28,6 +28,9 @@ func CreateResolvers(ctx *context.ServerContext, account *acme.Account) (types.R
 	configAcme := lego.NewConfig(account)
 	configAcme.CADirURL = ctx.Config.Acme.CAServer
 	configAcme.Certificate.KeyType = certcrypto.RSA4096
+	if ctx.Config.Acme.HTTPClient != nil {
+		configAcme.HTTPClient = ctx.Config.Acme.HTTPClient
+	}
 
 	ctx.Config.Acme.Resolvers[types.DefaultKey] = config.ResolverConfig{
 		Type:    acme.TypeHTTP01,

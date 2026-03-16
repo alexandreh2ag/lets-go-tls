@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/alexandreh2ag/lets-go-tls/config"
@@ -28,6 +29,9 @@ type AcmeConfig struct {
 	DelayFailed time.Duration             `mapstructure:"delay_failed" validate:"required"`
 
 	HttpChallengeConfig HttpChallengeConfig `mapstructure:"http_challenge"`
+
+	// HTTPClient is an optional HTTP client used for ACME requests (useful for testing with TLS test servers).
+	HTTPClient *http.Client `mapstructure:"-"`
 }
 
 type HttpChallengeConfig struct {

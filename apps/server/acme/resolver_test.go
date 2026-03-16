@@ -16,8 +16,9 @@ import (
 
 func TestCreateResolvers_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	ctx.Config.Acme.CAServer = apiURL + "/dir"
+	ctx.Config.Acme.HTTPClient = httpClient
 	account, _ := acme.NewAccount("dev@example.com")
 	got, err := CreateResolvers(ctx, account)
 	assert.NoError(t, err)
@@ -26,8 +27,9 @@ func TestCreateResolvers_Success(t *testing.T) {
 
 func TestCreateResolvers_Fail(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	ctx.Config.Acme.CAServer = apiURL + "/dir"
+	ctx.Config.Acme.HTTPClient = httpClient
 	ctx.Config.Acme.Resolvers = map[string]config.ResolverConfig{"test": {Type: "wrong"}}
 	account, _ := acme.NewAccount("dev@example.com")
 	got, err := CreateResolvers(ctx, account)
@@ -38,11 +40,12 @@ func TestCreateResolvers_Fail(t *testing.T) {
 
 func Test_createResolver_Success(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 
 	account, _ := acme.NewAccount("dev@example.com")
 	configAcme := lego.NewConfig(account)
 	configAcme.CADirURL = apiURL + "/dir"
+	configAcme.HTTPClient = httpClient
 	cfg := config.ResolverConfig{
 		Type:    acme.TypeHTTP01,
 		Filters: []string{"*"},
@@ -54,7 +57,7 @@ func Test_createResolver_Success(t *testing.T) {
 
 func Test_createResolver_SuccessWithDns(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 	ctrl := gomock.NewController(t)
 	key := "dummy"
 	challenge := mockTypesAcme.NewMockChallenge(ctrl)
@@ -64,6 +67,7 @@ func Test_createResolver_SuccessWithDns(t *testing.T) {
 	account, _ := acme.NewAccount("dev@example.com")
 	configAcme := lego.NewConfig(account)
 	configAcme.CADirURL = apiURL + "/dir"
+	configAcme.HTTPClient = httpClient
 	cfg := config.ResolverConfig{
 		Type:    key,
 		Filters: []string{"*"},
@@ -91,11 +95,12 @@ func Test_createResolver_FailCreateLegoClient(t *testing.T) {
 
 func Test_createResolver_FailCreateDnsProvider(t *testing.T) {
 	ctx := context.TestContext(nil)
-	_, apiURL := testutil.SetupFakeAPI(t)
+	_, apiURL, httpClient := testutil.SetupFakeAPI(t)
 
 	account, _ := acme.NewAccount("dev@example.com")
 	configAcme := lego.NewConfig(account)
 	configAcme.CADirURL = apiURL + "/dir"
+	configAcme.HTTPClient = httpClient
 	cfg := config.ResolverConfig{
 		Type:    "wrong",
 		Filters: []string{"*"},
