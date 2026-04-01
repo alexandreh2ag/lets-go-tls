@@ -40,7 +40,7 @@ func (ch *ChallengeHTTP) GetCacheKey(token, domain string) string {
 }
 
 func (ch *ChallengeHTTP) Present(domain, token, keyAuth string) error {
-	ch.logger.Debug(fmt.Sprintf("present domain=%s,token=%s,keyauth=%s", domain, token, keyAuth), "provider", ch.Type())
+	ch.logger.Info("present keyauth http challenge", "provider", ch.Type(), "domain", domain, "token", token, "keyauth", keyAuth)
 	cacheKey := ch.GetCacheKey(token, domain)
 	ctx := context.Background()
 	err := ch.cache.Set(ctx, cacheKey, keyAuth)
@@ -51,7 +51,7 @@ func (ch *ChallengeHTTP) Present(domain, token, keyAuth string) error {
 }
 
 func (ch *ChallengeHTTP) CleanUp(domain, token, _ string) error {
-	ch.logger.Debug(fmt.Sprintf("clean up domain=%s,token=%s", domain, token), "provider", "http-01")
+	ch.logger.Debug("clean up keyauth http challenge", "provider", ch.Type(), "domain", domain, "token", token)
 	cacheKey := ch.GetCacheKey(token, domain)
 	ctx := context.Background()
 	err := ch.cache.Delete(ctx, cacheKey)
