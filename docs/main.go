@@ -36,22 +36,22 @@ func main() {
 	// generate files
 	serverCfgRaw, err := yaml.Marshal(decodeToMap(serverCfg))
 	if err != nil {
-		panic(fmt.Errorf("faild marshal server config: %v", err))
+		panic(fmt.Errorf("failed marshal server config: %v", err))
 	}
 
 	agentCfgRaw, err := yaml.Marshal(decodeToMap(agentCfg))
 	if err != nil {
-		panic(fmt.Errorf("faild marshal agent config: %v", err))
+		panic(fmt.Errorf("failed marshal agent config: %v", err))
 	}
 
 	err = os.WriteFile(filepath.Join(cfgPath, "server.cfg.yml"), serverCfgRaw, 0660)
 	if err != nil {
-		panic(fmt.Errorf("faild write server config: %v", err))
+		panic(fmt.Errorf("failed write server config: %v", err))
 	}
 
 	err = os.WriteFile(filepath.Join(cfgPath, "agent.cfg.yml"), agentCfgRaw, 0660)
 	if err != nil {
-		panic(fmt.Errorf("faild write agent config: %v", err))
+		panic(fmt.Errorf("failed write agent config: %v", err))
 	}
 }
 
