@@ -24,6 +24,7 @@ acme:
     delay_failed: 24h0m0s # delay when a certificate reach max fail attempt to obtain or renew. default: 24h 
     max_attempt: 3 # max attempt when a certificate fail to obtain or renew. default: 3
     http_challenge:
+        delay_before_check: 0s # delay before checking http challenge. default: 0s
         enable_document_root: false # enable document root for http challenge.
         document_root: "" # document root for http challenge.
 ```

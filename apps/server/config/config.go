@@ -35,8 +35,9 @@ type AcmeConfig struct {
 }
 
 type HttpChallengeConfig struct {
-	EnableDocumentRoot bool   `mapstructure:"enable_document_root"`
-	DocumentRoot       string `mapstructure:"document_root" validate:"required_if=EnableDocumentRoot true"`
+	DelayBeforeCheck   time.Duration `mapstructure:"delay_before_check"`
+	EnableDocumentRoot bool          `mapstructure:"enable_document_root"`
+	DocumentRoot       string        `mapstructure:"document_root" validate:"required_if=EnableDocumentRoot true"`
 }
 
 type CacheConfig struct {

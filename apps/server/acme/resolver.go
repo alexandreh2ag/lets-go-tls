@@ -12,6 +12,7 @@ import (
 	"github.com/alexandreh2ag/lets-go-tls/types"
 	"github.com/alexandreh2ag/lets-go-tls/types/acme"
 	"github.com/go-acme/lego/v4/certcrypto"
+	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
 	legoLog "github.com/go-acme/lego/v4/log"
 )
@@ -60,7 +61,7 @@ func createResolver(ctx *context.ServerContext, id string, cfg config.ResolverCo
 
 	if cfg.Type == acme.TypeHTTP01 {
 		provider = GetHTTPProvider(ctx)
-		err = client.Challenge.SetHTTP01Provider(provider)
+		err = client.Challenge.SetHTTP01Provider(provider, http01.SetDelay(ctx.Config.Acme.HttpChallengeConfig.DelayBeforeCheck))
 	} else {
 		provider, err = dns.CreateDnsChallenge(ctx, id, cfg)
 		if err != nil {
