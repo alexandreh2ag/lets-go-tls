@@ -74,6 +74,16 @@ func (c Certificates) UnusedCertificates(domainsRequests []*DomainRequest) Certi
 	return unusedCertificates
 }
 
+func (c Certificates) NotIn(certificates Certificates) Certificates {
+	missingCertificates := Certificates{}
+	for _, cert := range c {
+		if certificates.GetCertificate(cert.Identifier) == nil {
+			missingCertificates = append(missingCertificates, cert)
+		}
+	}
+	return missingCertificates
+}
+
 func (c Certificates) Deletes(removeCertificates Certificates) Certificates {
 	return slices.DeleteFunc(c, func(certificate *Certificate) bool {
 		if removeCertificates.GetCertificate(certificate.Identifier) != nil {

@@ -111,8 +111,10 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 	}
 
 	ctx.MetricsRegister.MustGetGauge(domainRequestsMetric).Set(float64(len(domainsRequests)))
+	managerResponse := appHttp.ResponseCertificatesFromRequests{}
 	if len(domainsRequests) > 0 {
-		managerResponse, errManager := as.GetRequestManager(domainsRequests)
+		var errManager error
+		managerResponse, errManager = as.GetRequestManager(domainsRequests)
 		if errManager != nil {
 			return errManager
 		}
@@ -141,10 +143,10 @@ func (as *AgentService) Run(ctx *appCtx.AgentContext) error {
 		}
 	}
 
-	// find unused certificates only if fetch succeeded
+	// find unused certificates only if fetch succeeded and manager resolved all requests
 	unusedCertificates := types.Certificates{}
-	if errFetch == nil {
-		unusedCertificates = state.Certificates.UnusedCertificates(domainsRequests)
+	if errFetch == nil && len(domainsRequests) > 0 && len(managerResponse.Requests.NotFound) == 0 {
+		unusedCertificates = state.Certificates.NotIn(managerResponse.Certificates)
 		ctx.Logger.Debug(fmt.Sprintf("found %d unused certificates", len(unusedCertificates)))
 	}
 

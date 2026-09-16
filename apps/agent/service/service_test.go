@@ -104,6 +104,121 @@ func TestAgentService_Run_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestAgentService_Run_SuccessDeleteCertificateSupersededByWildcard(t *testing.T) {
+	ctx := appCtx.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	domainRequestJob := &types.DomainRequest{Domains: types.Domains{types.Domain("job.espace-aubade.fr")}}
+	certificateJob := &types.Certificate{Identifier: "job.espace-aubade.fr-0", Domains: types.Domains{types.Domain("job.espace-aubade.fr")}}
+	certificateWildcard := &types.Certificate{Identifier: "wildcard.espace-aubade.fr-0", Domains: types.Domains{types.Domain("*.espace-aubade.fr")}}
+
+	ctx.MetricsRegister = appProm.NewRegistry(types.NameAgentMetrics, prometheus.NewRegistry())
+	state := &types.State{Account: nil, Certificates: types.Certificates{certificateJob}}
+	storageState := mockTypesStorageState.NewMockStorage(ctrl)
+	storageState.EXPECT().Load().Times(1).Return(state, nil)
+	storageState.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
+
+	requester := mockTypes.NewMockRequester(ctrl)
+	requester.EXPECT().Fetch().Times(1).Return([]*types.DomainRequest{domainRequestJob}, nil)
+	ctx.Requesters = types.Requesters{"foo": requester}
+
+	clientHttp := mockHttp.NewMockClient(ctrl)
+	resp := fasthttp.Response{}
+	resp.SetStatusCode(http.StatusOK)
+	responseCertificate := appHttp.ResponseCertificatesFromRequests{
+		Certificates: types.Certificates{certificateWildcard},
+		Requests: appHttp.ResponseRequests{
+			Found:    []*types.DomainRequest{domainRequestJob},
+			NotFound: []*types.DomainRequest{},
+		},
+	}
+	body, _ := json.Marshal(responseCertificate)
+	resp.SetBody(body)
+	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+
+	deletedCertificates := types.Certificates{}
+	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
+		func(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
+			deletedCertificates = certificates
+			return nil
+		},
+	)
+
+	as := &AgentService{
+		logger:       ctx.Logger,
+		stateStorage: storageState,
+		httpClient:   clientHttp,
+		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
+	}
+	go as.hookManager.Start()
+
+	err := as.Run(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, types.Certificates{certificateJob}, deletedCertificates)
+	assert.Equal(t, types.Certificates{certificateWildcard}, state.Certificates)
+}
+
+func TestAgentService_Run_SuccessKeepCertificateWhenRequestNotFound(t *testing.T) {
+	ctx := appCtx.TestContext(nil)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	domainRequestJob := &types.DomainRequest{Domains: types.Domains{types.Domain("job.espace-aubade.fr")}}
+	certificateJob := &types.Certificate{Identifier: "job.espace-aubade.fr-0", Domains: types.Domains{types.Domain("job.espace-aubade.fr")}}
+
+	ctx.MetricsRegister = appProm.NewRegistry(types.NameAgentMetrics, prometheus.NewRegistry())
+	state := &types.State{Account: nil, Certificates: types.Certificates{certificateJob}}
+	storageState := mockTypesStorageState.NewMockStorage(ctrl)
+	storageState.EXPECT().Load().Times(1).Return(state, nil)
+	storageState.EXPECT().Save(gomock.Any()).Times(1).Return(nil)
+
+	requester := mockTypes.NewMockRequester(ctrl)
+	requester.EXPECT().Fetch().Times(1).Return([]*types.DomainRequest{domainRequestJob}, nil)
+	ctx.Requesters = types.Requesters{"foo": requester}
+
+	clientHttp := mockHttp.NewMockClient(ctrl)
+	resp := fasthttp.Response{}
+	resp.SetStatusCode(http.StatusOK)
+	responseCertificate := appHttp.ResponseCertificatesFromRequests{
+		Certificates: types.Certificates{},
+		Requests: appHttp.ResponseRequests{
+			Found:    []*types.DomainRequest{},
+			NotFound: []*types.DomainRequest{domainRequestJob},
+		},
+	}
+	body, _ := json.Marshal(responseCertificate)
+	resp.SetBody(body)
+	clientHttp.EXPECT().DoTimeout(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(1, resp).Return(nil)
+
+	deletedCertificates := types.Certificates{}
+	storage := mockTypesStorageCertificate.NewMockStorage(ctrl)
+	storage.EXPECT().Save(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	storage.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
+		func(certificates types.Certificates, hookChan chan<- *hook.Hook) []error {
+			deletedCertificates = certificates
+			return nil
+		},
+	)
+
+	as := &AgentService{
+		logger:       ctx.Logger,
+		stateStorage: storageState,
+		httpClient:   clientHttp,
+		storages:     certificate.Storages{"foo": storage},
+		hookManager:  hook.NewManagerHook(ctx.Logger),
+	}
+	go as.hookManager.Start()
+
+	err := as.Run(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, types.Certificates{}, deletedCertificates)
+	assert.Equal(t, types.Certificates{certificateJob}, state.Certificates)
+}
+
 func TestAgentService_Run_FailLoadState(t *testing.T) {
 	ctx := appCtx.TestContext(nil)
 	ctrl := gomock.NewController(t)
