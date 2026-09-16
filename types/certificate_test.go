@@ -325,6 +325,45 @@ func TestCertificates_UnusedCertificates(t *testing.T) {
 	}
 }
 
+func TestCertificates_NotIn(t *testing.T) {
+	cert1 := &Certificate{Identifier: "example.com-0", Domains: Domains{Domain("example.com")}}
+	cert2 := &Certificate{Identifier: "example2.com-0", Domains: Domains{Domain("example2.com")}}
+	certWildcard := &Certificate{Identifier: "wildcard.example.com-0", Domains: Domains{Domain("*.example.com")}}
+	certificates := Certificates{cert1, cert2}
+
+	tests := []struct {
+		name         string
+		certificates Certificates
+		want         Certificates
+	}{
+		{
+			name:         "SuccessAllPresent",
+			certificates: Certificates{cert1, cert2},
+			want:         Certificates{},
+		},
+		{
+			name:         "SuccessOneMissing",
+			certificates: Certificates{cert1},
+			want:         Certificates{cert2},
+		},
+		{
+			name:         "SuccessSupersededByWildcard",
+			certificates: Certificates{certWildcard, cert2},
+			want:         Certificates{cert1},
+		},
+		{
+			name:         "SuccessEmpty",
+			certificates: Certificates{},
+			want:         Certificates{cert1, cert2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, certificates.NotIn(tt.certificates), "NotIn(%v)", tt.certificates)
+		})
+	}
+}
+
 func TestCertificates_Deletes(t *testing.T) {
 	cert1 := &Certificate{Identifier: "example.com-0", Domains: Domains{Domain("example.com")}}
 	cert2 := &Certificate{Identifier: "example2.com-0", Domains: Domains{Domain("example2.com")}}
